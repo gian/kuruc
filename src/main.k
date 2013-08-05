@@ -59,7 +59,7 @@ struct
    fun printVersion () =
       print ("kuruc version " ^ 
          Version.major ^ "." ^ Version.minor ^ "." ^ Version.build ^ "\n" ^
-             " build " ^ Version.gitId ^ " (" ^ Version.date ^ ") on " ^ 
+             "build " ^ Version.gitId ^ " (" ^ Version.date ^ ") on " ^ 
              Version.hostname ^ "\n" ^
              "Copyright (C) 2010-2013 Gian Perrone\n" ^ 
              "http://www.kuru-lang.org\n")

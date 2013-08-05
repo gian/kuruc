@@ -6,3 +6,6 @@ bin/kuruc:
 clean:
 	make -C src clean
 
+.PHONY: clean bin/kuruc
+
+
