@@ -3,7 +3,7 @@ COMPILER=mlton
 KUPEG=$(BIN)/kupeg
 
 SMLDEPS= \
-	config.sml debug.sml main.sml compile.sml version.sml \
+	config.sml debug.sml main.sml version.sml \
 	ast/typed_ast.sml
 
 all: $(BIN)/kuruc

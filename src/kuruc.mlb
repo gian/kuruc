@@ -1,0 +1,6 @@
+$(SML_LIB)/basis/basis.mlb
+debug.sml
+version.sml
+config.sml
+ast/typed_ast.sml
+main.sml
