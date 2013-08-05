@@ -1,4 +1,4 @@
-BIN=../../bin
+BIN=../bin
 COMPILER=mlton 
 KUPEG=$(BIN)/kupeg
 

@@ -86,5 +86,8 @@ struct
     | AscriptionMod of module * ascription * pos
     | FunctorMod of symbol * functor_clause list * module * pos
 
+   withtype clause = pattern * expression
+        and functor_clause = module * module
+
    type program = module list
 end
