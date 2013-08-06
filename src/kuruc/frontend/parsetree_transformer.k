@@ -58,5 +58,6 @@ struct
             (tenv,venv,p)
                passes
 
-
+   fun transform parseTree = 
+      (fn (_,_,pt') => pt') (convertPasses () () parseTree)
 end

@@ -147,24 +147,14 @@ struct
          val _ = Debug.endStage "GenInputs"
 
          (* Stage 2 - Parse tree passes *)
-    (*     val _ = Debug.startStage 1 "ParseTreeTransform"
-         val (te',ve',se',fl'') =
-                   List.foldl (fn (l,(te,ve,se,r)) =>
-                       let
-                          val (te',ve',se',r') =
-                              ConvertParseTree.convert te ve se l
-                          val _ = Debug.print Debug.debugmore (
-                                       "Converted Typed AST:\n" ^
-                                       TypedAST.prettyPrint r'
-                                    )
-                       in
-                          (te',ve',se',r @ [r'])
-                       end) (Env.tenv_base, Env.venv_base, Env.senv_base, []) fl'
-
+         val _ = Debug.startStage 1 "ParseTreeTransform"
+         val fl'' = map ParseTreeTransformer.transform fl'
+         val _ = Debug.print Debug.debug (String.concatWith "\n\n" 
+            (map (fn l => String.concatWith "\n" (map ParseTree.prettyPrint l)) fl'') ^ "\n")
          val _ = Debug.endStage "ParseTreeTransform"
 
          (* Stage 3 - Type inference/checking *)
-         val _ = Debug.startStage 1 "TypeInference"
+         (* val _ = Debug.startStage 1 "TypeInference"
          val fl''' = List.concat (map TypeCheck.check fl'')
          val _ = Debug.endStage "TypeInference"
 
