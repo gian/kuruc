@@ -1,9 +1,10 @@
-BIN=../bin
+BIN=../../bin
 COMPILER=mlton 
 KUPEG=$(BIN)/kupeg
 
 SMLDEPS= \
 	config.sml debug.sml main.sml version.sml \
+	frontend/error.sml frontend/parsetree.sml frontend/kuru.kpg.sml \
 	ast/typed_ast.sml ast/symbol.sml ast/symbol.sig
 
 all: $(BIN)/kuruc

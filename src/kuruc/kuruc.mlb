@@ -2,6 +2,9 @@ $(SML_LIB)/basis/basis.mlb
 debug.sml
 version.sml
 config.sml
+frontend/error.sml
+frontend/parsetree.sml
+frontend/kuru.kpg.sml
 ast/symbol.sig
 ast/symbol.sml
 ast/typed_ast.sml

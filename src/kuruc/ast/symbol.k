@@ -40,7 +40,10 @@ struct
    fun toString (Short s) = s
      | toString (Long l) = String.concatWith "." l
 
-   fun fromString s = Short s
+   fun fromString s =
+      case String.fields (fn #"." => true | _ => false) s of
+         [t] => Short t
+       | l => Long l
 
 end
 

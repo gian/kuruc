@@ -1,0 +1,6853 @@
+(* Generated from kuru.kpg *)
+
+structure KuruParser =
+struct
+(*******************************************************************************
+*  The Kuru Programming Language Compiler Toolset (http://www.kuru-lang.org)
+*  Copyright (C) 2010  Gian Perrone
+*
+*  This program is free software: you can redistribute it and/or modify
+*  it under the terms of the GNU General Public License as published by
+*  the Free Software Foundation, either version 3 of the License, or
+*  (at your option) any later version.
+*
+*  This program is distributed in the hope that it will be useful,
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*  GNU General Public License for more details.
+*
+*  You should have received a copy of the GNU General Public License
+*  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*******************************************************************************
+*  This file:
+*    Primary Kuru PEG grammar. 
+*
+*  Partially derived from http://www.mpi-sws.org/~rossberg/sml.html
+*  For a description of the grammar, see: 
+*  http://www.kuru-lang.org/documentation/kuru-grammar
+******************************************************************************)
+
+
+structure P = ParseTree
+
+
+val srcFileLineNum = ref 1
+
+val kuruFile = ref "__UNKNOWN__"
+
+fun escape "n" = "\n"
+  | escape "\\" = "\\"
+  | escape "0" = String.str (Char.chr 0)
+  | escape "t" = "\t"
+  | escape "\"" = "\\\""
+  | escape x = x
+
+
+type res_char = string option
+type res_literal = string option
+type res_sp = string option
+type res__ = string option
+type res_comment = string option
+type res_commentc = string option
+type res_num = string option
+type res_numdig = string option
+type res_int = P.pt option
+type res_real = P.pt option
+type res_negat = bool option
+type res_charconst = P.pt option
+type res_string = P.pt option
+type res_stringcont = string option
+type res_con = P.pt option
+type res_reserved = string option
+type res_nonid = string option
+type res_keyword = string option
+type res_id = P.pt option
+type res_idrest = string option
+type res_var = P.pt option
+type res_longid = P.pt option
+type res_exp = P.pt option
+type res_expel = P.pt option
+type res_expapp = P.pt list option
+type res_explist = P.pt list option
+type res_expseq = P.pt list option
+type res_match = P.pt list option
+type res_pat = P.pt option
+type res_patel = P.pt option
+type res_patlist = P.pt list option
+type res_patapp = P.pt list option
+type res_typ = P.pt option
+type res_typel = P.pt option
+type res_tyannopt = P.pt option option
+type res_typairlist = P.pt list option
+type res_typapp = P.pt list option
+type res_declist = P.pt list option
+type res_dec = P.pt option
+type res_valbind = P.pt list option
+type res_tyvarlist = P.pt list option
+type res_tyvars = P.pt list option
+type res_typebind = P.pt list option
+type res_funbind = P.pt list list option
+type res_funmatch = P.pt list option
+type res_databind = P.pt list option
+type res_conbind = P.pt list option
+type res_strbind = P.pt list option
+type res_str = P.pt option
+type res_sign = P.pt option
+type res_sdeclist = P.pt list option
+type res_sdec = P.pt option
+type res_sigasc_opt = P.ascription option
+type res_valdesc = P.pt list option
+type res_typedesc = P.pt list option
+type res_sigbind = P.pt list option
+type res_strdesc = P.pt list option
+type res_programel = P.pt option
+type res_program = P.pt list option
+
+val cache_program = ref [] : (int * (int * res_program)) list ref
+val cache_programel = ref [] : (int * (int * res_programel)) list ref
+val cache_sign = ref [] : (int * (int * res_sign)) list ref
+val cache_str = ref [] : (int * (int * res_str)) list ref
+val cache_sigbind = ref [] : (int * (int * res_sigbind)) list ref
+val cache_sigasc_opt = ref [] : (int * (int * res_sigasc_opt)) list ref
+val cache_strbind = ref [] : (int * (int * res_strbind)) list ref
+val cache_conbind = ref [] : (int * (int * res_conbind)) list ref
+val cache_databind = ref [] : (int * (int * res_databind)) list ref
+val cache_funmatch = ref [] : (int * (int * res_funmatch)) list ref
+val cache_funbind = ref [] : (int * (int * res_funbind)) list ref
+val cache_typebind = ref [] : (int * (int * res_typebind)) list ref
+val cache_tyvars = ref [] : (int * (int * res_tyvars)) list ref
+val cache_tyvarlist = ref [] : (int * (int * res_tyvarlist)) list ref
+val cache_valbind = ref [] : (int * (int * res_valbind)) list ref
+val cache_strdesc = ref [] : (int * (int * res_strdesc)) list ref
+val cache_typedesc = ref [] : (int * (int * res_typedesc)) list ref
+val cache_valdesc = ref [] : (int * (int * res_valdesc)) list ref
+val cache_sdec = ref [] : (int * (int * res_sdec)) list ref
+val cache_dec = ref [] : (int * (int * res_dec)) list ref
+val cache_sdeclist = ref [] : (int * (int * res_sdeclist)) list ref
+val cache_declist = ref [] : (int * (int * res_declist)) list ref
+val cache_tyannopt = ref [] : (int * (int * res_tyannopt)) list ref
+val cache_typapp = ref [] : (int * (int * res_typapp)) list ref
+val cache_typel = ref [] : (int * (int * res_typel)) list ref
+val cache_typ = ref [] : (int * (int * res_typ)) list ref
+val cache_patapp = ref [] : (int * (int * res_patapp)) list ref
+val cache_patlist = ref [] : (int * (int * res_patlist)) list ref
+val cache_patel = ref [] : (int * (int * res_patel)) list ref
+val cache_pat = ref [] : (int * (int * res_pat)) list ref
+val cache_match = ref [] : (int * (int * res_match)) list ref
+val cache_expseq = ref [] : (int * (int * res_expseq)) list ref
+val cache_explist = ref [] : (int * (int * res_explist)) list ref
+val cache_expapp = ref [] : (int * (int * res_expapp)) list ref
+val cache_expel = ref [] : (int * (int * res_expel)) list ref
+val cache_exp = ref [] : (int * (int * res_exp)) list ref
+val cache_longid = ref [] : (int * (int * res_longid)) list ref
+val cache_var = ref [] : (int * (int * res_var)) list ref
+val cache_idrest = ref [] : (int * (int * res_idrest)) list ref
+val cache_id = ref [] : (int * (int * res_id)) list ref
+val cache_keyword = ref [] : (int * (int * res_keyword)) list ref
+val cache_nonid = ref [] : (int * (int * res_nonid)) list ref
+val cache_reserved = ref [] : (int * (int * res_reserved)) list ref
+val cache_con = ref [] : (int * (int * res_con)) list ref
+val cache_stringcont = ref [] : (int * (int * res_stringcont)) list ref
+val cache_string = ref [] : (int * (int * res_string)) list ref
+val cache_charconst = ref [] : (int * (int * res_charconst)) list ref
+val cache_negat = ref [] : (int * (int * res_negat)) list ref
+val cache_real = ref [] : (int * (int * res_real)) list ref
+val cache_int = ref [] : (int * (int * res_int)) list ref
+val cache_num = ref [] : (int * (int * res_num)) list ref
+val cache_commentc = ref [] : (int * (int * res_commentc)) list ref
+val cache_comment = ref [] : (int * (int * res_comment)) list ref
+val cache__ = ref [] : (int * (int * res__)) list ref
+val cache_sp = ref [] : (int * (int * res_sp)) list ref
+
+fun $ f = valOf f
+
+val errorPos = ref 0
+fun setErrPos c = if !errorPos < c then errorPos := c else ()
+val debugVerbose = ref false
+fun debug_print s = if (!debugVerbose) then print s else ()
+fun notNone (NONE : 'a option) = false | notNone (SOME _) = true
+fun cachefind c p =
+  (fn NONE => NONE | SOME (k,v) => SOME v)
+   (List.find (fn (p',v) => p = p') (!c))
+fun cacheupd c p v =  (if length (!c) > 25 then (c := []) else (); c := (p,v) :: (!c)) fun cachereset c = c := []
+fun error () = !errorPos
+fun kupeg_start s = (kupeg_reset (); valOf (parse_program (s,ref 0)))
+
+and parse_char(input, pos) = 
+  if (!pos >= size input) then NONE else
+  (pos := !pos + 1; setErrPos (!pos); SOME (String.str (String.sub(input,(!pos - 1)))))
+  handle Subscript => NONE
+and parse_alpha (input, pos) =
+  if (!pos >= size input) then NONE else
+  let
+     val c = String.sub(input,(!pos))
+  in
+     if Char.isAlpha c then SOME (pos := 1 + !pos; setErrPos (!pos); String.str c) else NONE
+  end
+and parse_digit (input, pos) =
+  if (!pos >= size input) then NONE else
+  let
+     val c = String.sub(input,(!pos))
+  in
+     if Char.isDigit c then SOME (pos := 1 + !pos; setErrPos (!pos); String.str c) else NONE
+  end
+and literal(input, pos, str) = 
+ (setErrPos (!pos);
+  (if (String.substring(input, !pos, size str) = str) then
+  (pos := !pos + size str; setErrPos (!pos); SOME  (str))
+  else NONE) handle Subscript => NONE)
+
+and parse_sp (input,pos) : res_sp =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_sp\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_sp inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 = literal(input,pos," ")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"\n")
+   in
+      if notNone s1' then SOME (((srcFileLineNum := !srcFileLineNum + 1);"\n"))   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; literal(input,pos,"\t"))
+   end
+)
+   end
+)
+            val _ = cacheupd cache_sp inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse__ (input,pos) : res__ =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse__\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache__ inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse_sp(input,pos)
+   in
+      if notNone s1' then parse__(input,pos)   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse_comment(input,pos)
+   in
+      if notNone s1' then parse__(input,pos)   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; SOME "")
+   end
+)
+   end
+)
+            val _ = cacheupd cache__ inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_comment (input,pos) : res_comment =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_comment\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_comment inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val s1' = literal(input,pos,"(*")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse_commentc(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"*)")
+   in
+      if notNone s1' then SOME ((""))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+            val _ = cacheupd cache_comment inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_commentc (input,pos) : res_commentc =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_commentc\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_commentc inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' =    let
+      val prestate = !pos
+      val t = literal(input,pos,"*)")
+      val _ = if notNone t then (pos := prestate) else ()
+   in
+      (fn NONE => SOME "" | SOME _ => NONE) t
+   end
+
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse_char(input,pos)
+   in
+      if notNone s1' then parse_commentc(input,pos)   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; SOME "")
+   end
+)
+            val _ = cacheupd cache_commentc inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_num (input,pos) : res_num =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_num\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_num inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val d = parse_digit(input,pos)
+   in
+      if notNone d then (   let
+      val prestate = !pos
+      val n =    let
+      fun fx () = let
+         val prestate = !pos
+         val t = (parse_digit(input,pos))
+      in
+        if notNone t then (valOf t) :: fx () else (pos := prestate; [])
+      end
+   in
+      SOME (fx())
+   end
+
+   in
+      if notNone n then (SOME ((String.concat($d :: $n)))) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+)
+            val _ = cacheupd cache_num inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_int (input,pos) : res_int =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_int\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_int inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val n = parse_negat(input,pos)
+   in
+      if notNone n then (   let
+      val prestate = !pos
+      val d = parse_num(input,pos)
+   in
+      if notNone d then (SOME ((P.Int ($n,$d,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+)
+            val _ = cacheupd cache_int inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_real (input,pos) : res_real =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_real\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_real inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val n1 = parse_negat(input,pos)
+   in
+      if notNone n1 then (   let
+      val prestate = !pos
+      val d1 = parse_num(input,pos)
+   in
+      if notNone d1 then (   let
+      val prestate = !pos
+      val s1' = literal(input,pos,".")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val d2 = parse_num(input,pos)
+   in
+      if notNone d2 then (   let
+      val prestate = !pos
+      val s1' = literal(input,pos,"e")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val n2 = parse_negat(input,pos)
+   in
+      if notNone n2 then (   let
+      val prestate = !pos
+      val d3 = parse_num(input,pos)
+   in
+      if notNone d3 then (SOME ((P.Real ($n1,$d1,$d2,SOME ($n2,$d3),(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val n1 = parse_negat(input,pos)
+   in
+      if notNone n1 then (   let
+      val prestate = !pos
+      val d1 = parse_num(input,pos)
+   in
+      if notNone d1 then (   let
+      val prestate = !pos
+      val s1' = literal(input,pos,".")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val d2 = parse_num(input,pos)
+   in
+      if notNone d2 then (SOME ((P.Real ($n1,$d1,$d2,NONE,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_real inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_negat (input,pos) : res_negat =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_negat\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_negat inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"~")
+   in
+      if notNone s1' then SOME ((true))   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; SOME ((false)))
+   end
+)
+            val _ = cacheupd cache_negat inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_charconst (input,pos) : res_charconst =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_charconst\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_charconst inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val s1' = literal(input,pos,"#")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"\"")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val c = parse_stringcont(input,pos)
+   in
+      if notNone c then (   let
+      val prestate = !pos
+      val s1' = literal(input,pos,"\"")
+   in
+      if notNone s1' then SOME ((P.Char ($c,(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+            val _ = cacheupd cache_charconst inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_string (input,pos) : res_string =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_string\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_string inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val s1' = literal(input,pos,"\"")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s = parse_stringcont(input,pos)
+   in
+      if notNone s then (   let
+      val prestate = !pos
+      val s1' = literal(input,pos,"\"")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then SOME ((P.String ($s,(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+            val _ = cacheupd cache_string inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_stringcont (input,pos) : res_stringcont =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_stringcont\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_stringcont inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' =    let
+      val prestate = !pos
+      val t = literal(input,pos,"\\")
+      val _ = if notNone t then (pos := prestate) else ()
+   in
+      (fn NONE => SOME "" | SOME _ => NONE) t
+   end
+
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' =    let
+      val prestate = !pos
+      val t = literal(input,pos,"\"")
+      val _ = if notNone t then (pos := prestate) else ()
+   in
+      (fn NONE => SOME "" | SOME _ => NONE) t
+   end
+
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val c = parse_char(input,pos)
+   in
+      if notNone c then (   let
+      val prestate = !pos
+      val s = parse_stringcont(input,pos)
+   in
+      if notNone s then (SOME (($c ^ $s))) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val b = literal(input,pos,"\\")
+   in
+      if notNone b then (   let
+      val prestate = !pos
+      val c = parse_char(input,pos)
+   in
+      if notNone c then (   let
+      val prestate = !pos
+      val s = parse_stringcont(input,pos)
+   in
+      if notNone s then (SOME (((escape ($c)) ^ $s))) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; SOME (("")))
+   end
+)
+   end
+)
+            val _ = cacheupd cache_stringcont inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_con (input,pos) : res_con =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_con\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_con inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 = parse_real(input,pos)
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = parse_int(input,pos)
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = parse_charconst(input,pos)
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; parse_string(input,pos))
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_con inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_reserved (input,pos) : res_reserved =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_reserved\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_reserved inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"!")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"%")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"&")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"$")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"+")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"-")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"/")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"<=")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,">=")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,":=")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"::")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"<")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,">")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"?")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"@")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"\\")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"`")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"^")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; literal(input,pos,"*"))
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_reserved inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_nonid (input,pos) : res_nonid =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_nonid\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_nonid inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"(")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,")")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"[")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"]")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,".")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,";")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,",")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"|")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"~")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"#")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,":")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"=>")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; literal(input,pos,"="))
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_nonid inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_keyword (input,pos) : res_keyword =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_keyword\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_keyword inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"val")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"let")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"if")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"then")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"else")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"datatype")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"type")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"fn")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"fun")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"and")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"end")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"in")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"structure")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"struct")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"of")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"case")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"handle")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"raise")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"infixr")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"infix")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"signature")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"sig")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"exception")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"open")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"local")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"_import")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"as")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"bind")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; literal(input,pos,"to"))
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_keyword inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_id (input,pos) : res_id =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_id\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_id inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val r1 = parse_reserved(input,pos)
+   in
+      if notNone r1 then (   let
+      val prestate = !pos
+      val r2 =    let
+      fun fx () = let
+         val prestate = !pos
+         val t = (parse_reserved(input,pos))
+      in
+        if notNone t then (valOf t) :: fx () else (pos := prestate; [])
+      end
+   in
+      SOME (fx())
+   end
+
+   in
+      if notNone r2 then (SOME ((P.Ident(String.concat($r1 :: $r2),(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val k = parse_keyword(input,pos)
+   in
+      if notNone k then (   let
+      val prestate = !pos
+      val i1 = parse_idrest(input,pos)
+   in
+      if notNone i1 then (   let
+      val prestate = !pos
+      val i2 =    let
+      fun fx () = let
+         val prestate = !pos
+         val t = (parse_idrest(input,pos))
+      in
+        if notNone t then (valOf t) :: fx () else (pos := prestate; [])
+      end
+   in
+      SOME (fx())
+   end
+
+   in
+      if notNone i2 then (SOME ((P.Ident($k ^ $i1 ^String.concat($i2),(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' =    let
+      val prestate = !pos
+      val t = literal(input,pos,"_")
+      val _ = if notNone t then (pos := prestate) else ()
+   in
+      (fn NONE => SOME "" | SOME _ => NONE) t
+   end
+
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' =    let
+      val prestate = !pos
+      val t = parse_keyword(input,pos)
+      val _ = if notNone t then (pos := prestate) else ()
+   in
+      (fn NONE => SOME "" | SOME _ => NONE) t
+   end
+
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' =    let
+      val prestate = !pos
+      val t = parse_nonid(input,pos)
+      val _ = if notNone t then (pos := prestate) else ()
+   in
+      (fn NONE => SOME "" | SOME _ => NONE) t
+   end
+
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val l = parse_alpha(input,pos)
+   in
+      if notNone l then (   let
+      val prestate = !pos
+      val r =    let
+      fun fx () = let
+         val prestate = !pos
+         val t = (parse_idrest(input,pos))
+      in
+        if notNone t then (valOf t) :: fx () else (pos := prestate; [])
+      end
+   in
+      SOME (fx())
+   end
+
+   in
+      if notNone r then (SOME ((P.Ident(String.concat ($l :: $r),(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_id inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_idrest (input,pos) : res_idrest =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_idrest\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_idrest inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val s1' =    let
+      val prestate = !pos
+      val t = parse_sp(input,pos)
+      val _ = if notNone t then (pos := prestate) else ()
+   in
+      (fn NONE => SOME "" | SOME _ => NONE) t
+   end
+
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' =    let
+      val prestate = !pos
+      val t = parse_nonid(input,pos)
+      val _ = if notNone t then (pos := prestate) else ()
+   in
+      (fn NONE => SOME "" | SOME _ => NONE) t
+   end
+
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' =    let
+      val prestate = !pos
+      val t = parse_reserved(input,pos)
+      val _ = if notNone t then (pos := prestate) else ()
+   in
+      (fn NONE => SOME "" | SOME _ => NONE) t
+   end
+
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val c = parse_char(input,pos)
+   in
+      if notNone c then (SOME (($c))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+            val _ = cacheupd cache_idrest inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_var (input,pos) : res_var =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_var\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_var inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"''")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (SOME ((P.Var ($i,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"'")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (SOME ((P.Var ($i,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_var inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_longid (input,pos) : res_longid =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_longid\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_longid inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = literal(input,pos,".")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val l = parse_longid(input,pos)
+   in
+      if notNone l then (SOME ((P.LongId ($i,$l,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (SOME (($i))) else (pos := prestate;NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_longid inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_exp (input,pos) : res_exp =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_exp\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_exp inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"raise")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (SOME ((P.Raise ($e,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e1 = parse_expapp(input,pos)
+   in
+      if notNone e1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"andalso")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e2 = parse_exp(input,pos)
+   in
+      if notNone e2 then (SOME ((P.AndAlso(P.AppList($e1,(!pos,!kuruFile)),$e2,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e1 = parse_expapp(input,pos)
+   in
+      if notNone e1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"orelse")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e2 = parse_exp(input,pos)
+   in
+      if notNone e2 then (SOME ((P.OrElse(P.AppList($e1,(!pos,!kuruFile)),$e2,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_expapp(input,pos)
+   in
+      if notNone e then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"handle")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val m = parse_match(input,pos)
+   in
+      if notNone m then (SOME ((P.HandleExp(P.AppList($e,(!pos,!kuruFile)),$m,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_expapp(input,pos)
+   in
+      if notNone e then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,":")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typ(input,pos)
+   in
+      if notNone t then (SOME ((P.TyAnn (P.AppList ($e,(!pos,!kuruFile)),$t,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e1 = parse_expapp(input,pos)
+   in
+      if notNone e1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e2 = parse_exp(input,pos)
+   in
+      if notNone e2 then (SOME ((P.Infix (P.AppList ($e1,(!pos,!kuruFile)),P.Ident ("=",(!pos,!kuruFile)),$e2,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e1 = parse_expapp(input,pos)
+   in
+      if notNone e1 then (SOME ((P.AppList ($e1,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_exp inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_expel (input,pos) : res_expel =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_expel\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_expel inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"op")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val l = parse_longid(input,pos)
+   in
+      if notNone l then (SOME ((P.OpExp ($l,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"let")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val d = parse_declist(input,pos)
+   in
+      if notNone d then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"in")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e1 = parse_exp(input,pos)
+   in
+      if notNone e1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,";")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e2 = parse_expseq(input,pos)
+   in
+      if notNone e2 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"end")
+   in
+      if notNone s1' then SOME ((P.LetExp($d,P.SeqExp($e1 :: $e2,(!pos,!kuruFile)),(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"let")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val d = parse_declist(input,pos)
+   in
+      if notNone d then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"in")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"end")
+   in
+      if notNone s1' then SOME ((P.LetExp($d,$e,(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = parse_con(input,pos)
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"(")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e1 = parse_exp(input,pos)
+   in
+      if notNone e1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,",")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e2 = parse_explist(input,pos)
+   in
+      if notNone e2 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,")")
+   in
+      if notNone s1' then SOME ((P.TupleExp ($e1 :: $e2,(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"(")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e1 = parse_exp(input,pos)
+   in
+      if notNone e1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,";")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e2 = parse_expseq(input,pos)
+   in
+      if notNone e2 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,")")
+   in
+      if notNone s1' then SOME ((P.SeqExp ($e1 :: $e2,(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"(")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,")")
+   in
+      if notNone s1' then SOME (($e))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"()")
+   in
+      if notNone s1' then SOME ((P.UnitExp ((!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"[")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e1 = parse_exp(input,pos)
+   in
+      if notNone e1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,",")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e2 = parse_explist(input,pos)
+   in
+      if notNone e2 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"]")
+   in
+      if notNone s1' then SOME ((P.ListExp ($e1 :: $e2,(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"[")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"]")
+   in
+      if notNone s1' then SOME ((P.ListExp ([$e],(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"[")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"]")
+   in
+      if notNone s1' then SOME ((P.ListExp ([],(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"if")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e1 = parse_exp(input,pos)
+   in
+      if notNone e1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"then")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e2 = parse_exp(input,pos)
+   in
+      if notNone e2 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"else")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e3 = parse_exp(input,pos)
+   in
+      if notNone e3 then (SOME ((P.IfExp($e1,$e2,$e3,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"while")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e1 = parse_exp(input,pos)
+   in
+      if notNone e1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"do")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e2 = parse_exp(input,pos)
+   in
+      if notNone e2 then (SOME ((P.WhileExp($e1,$e2,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"case")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"of")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val m = parse_match(input,pos)
+   in
+      if notNone m then (SOME ((P.CaseExp($e,$m,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"fn")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val m = parse_match(input,pos)
+   in
+      if notNone m then (SOME ((P.FnExp($m,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; parse_longid(input,pos))
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_expel inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_expapp (input,pos) : res_expapp =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_expapp\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_expapp inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val e1 = parse_expel(input,pos)
+   in
+      if notNone e1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e2 = parse_expapp(input,pos)
+   in
+      if notNone e2 then (SOME (($e1 :: $e2))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val e1 = parse_expel(input,pos)
+   in
+      if notNone e1 then (SOME (([$e1]))) else (pos := prestate;NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_expapp inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_explist (input,pos) : res_explist =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_explist\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_explist inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e1 = parse_exp(input,pos)
+   in
+      if notNone e1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,",")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e2 = parse_explist(input,pos)
+   in
+      if notNone e2 then (SOME (($e1 :: $e2))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (SOME ((([$e])))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_explist inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_expseq (input,pos) : res_expseq =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_expseq\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_expseq inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e1 = parse_exp(input,pos)
+   in
+      if notNone e1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,";")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e2 = parse_expseq(input,pos)
+   in
+      if notNone e2 then (SOME (($e1 :: $e2))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (SOME ((([$e])))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_expseq inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_match (input,pos) : res_match =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_match\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_match inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p = parse_pat(input,pos)
+   in
+      if notNone p then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=>")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"|")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val m = parse_match(input,pos)
+   in
+      if notNone m then (SOME (((P.Match($p,$e,(!pos,!kuruFile))) :: $m))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p = parse_pat(input,pos)
+   in
+      if notNone p then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=>")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (SOME (([P.Match($p,$e,(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_match inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_pat (input,pos) : res_pat =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_pat\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_pat inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p1 = parse_patel(input,pos)
+   in
+      if notNone p1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"as")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p2 = parse_pat(input,pos)
+   in
+      if notNone p2 then (SOME ((P.AsPat($p1,$p2,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p1 = parse_patel(input,pos)
+   in
+      if notNone p1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"::")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p2 = parse_pat(input,pos)
+   in
+      if notNone p2 then (SOME ((P.InfixPat($p1,P.Ident ("::",(!pos,!kuruFile)),$p2,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p = parse_patel(input,pos)
+   in
+      if notNone p then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,":")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typ(input,pos)
+   in
+      if notNone t then (SOME ((P.TyAnnPat ($p,$t,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_longid(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p = parse_patel(input,pos)
+   in
+      if notNone p then (SOME ((P.ConstrPat ($i,SOME ($p),(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then parse_patel(input,pos)   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_pat inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_patel (input,pos) : res_patel =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_patel\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_patel inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"_")
+   in
+      if notNone s1' then SOME ((P.WildcardPat ((!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val i = parse_longid(input,pos)
+   in
+      if notNone i then (SOME ((P.IdPat ($i,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val c = parse_con(input,pos)
+   in
+      if notNone c then (SOME ((P.ConPat ($c,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"(")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p1 = parse_pat(input,pos)
+   in
+      if notNone p1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,",")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p2 = parse_patlist(input,pos)
+   in
+      if notNone p2 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,")")
+   in
+      if notNone s1' then SOME ((P.TuplePat ($p1 :: $p2,(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"(")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p = parse_pat(input,pos)
+   in
+      if notNone p then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,")")
+   in
+      if notNone s1' then SOME (($p))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"()")
+   in
+      if notNone s1' then SOME ((P.UnitPat ((!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"[")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p = parse_patlist(input,pos)
+   in
+      if notNone p then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"]")
+   in
+      if notNone s1' then SOME ((P.ListPat ($p,(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"[")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"]")
+   in
+      if notNone s1' then SOME ((P.ListPat ([],(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_patel inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_patlist (input,pos) : res_patlist =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_patlist\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_patlist inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p1 = parse_pat(input,pos)
+   in
+      if notNone p1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,",")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p2 = parse_patlist(input,pos)
+   in
+      if notNone p2 then (SOME (($p1 :: $p2))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p1 = parse_pat(input,pos)
+   in
+      if notNone p1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then SOME (([$p1]))   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_patlist inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_patapp (input,pos) : res_patapp =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_patapp\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_patapp inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p1 = parse_patel(input,pos)
+   in
+      if notNone p1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p2 = parse_patapp(input,pos)
+   in
+      if notNone p2 then (SOME (($p1 :: $p2))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p1 = parse_patel(input,pos)
+   in
+      if notNone p1 then (SOME (([$p1]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_patapp inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_typ (input,pos) : res_typ =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_typ\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_typ inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t1 = parse_typel(input,pos)
+   in
+      if notNone t1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"->")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t2 = parse_typ(input,pos)
+   in
+      if notNone t2 then (SOME ((P.TyArrow ($t1,$t2,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t1 = parse_typapp(input,pos)
+   in
+      if notNone t1 then (SOME ((P.TyPair ($t1,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t1 = parse_typel(input,pos)
+   in
+      if notNone t1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t2 = parse_typ(input,pos)
+   in
+      if notNone t2 then (SOME ((P.TyCon ($t1,$t2,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typel(input,pos)
+   in
+      if notNone t then (SOME (($t))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_typ inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_typel (input,pos) : res_typel =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_typel\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_typel inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val v = parse_var(input,pos)
+   in
+      if notNone v then (SOME (($v))) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val i = parse_longid(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t1 = parse_typel(input,pos)
+   in
+      if notNone t1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=>")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t2 = parse_typ(input,pos)
+   in
+      if notNone t2 then (SOME ((P.TyClass ($i,$t1,$t2,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' =    let
+      val prestate = !pos
+      val t = literal(input,pos,"*")
+      val _ = if notNone t then (pos := prestate) else ()
+   in
+      (fn NONE => SOME "" | SOME _ => NONE) t
+   end
+
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_longid(input,pos)
+   in
+      if notNone i then (SOME ((P.TyName ($i,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"(")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typ(input,pos)
+   in
+      if notNone t then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,")")
+   in
+      if notNone s1' then SOME (($t))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_typel inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_typapp (input,pos) : res_typapp =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_typapp\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_typapp inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val t1 = parse_typel(input,pos)
+   in
+      if notNone t1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"*")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t2 = parse_typapp(input,pos)
+   in
+      if notNone t2 then (SOME (($t1 :: $t2))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val t1 = parse_typel(input,pos)
+   in
+      if notNone t1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"*")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t2 = parse_typ(input,pos)
+   in
+      if notNone t2 then (SOME (([$t1,$t2]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_typapp inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_tyannopt (input,pos) : res_tyannopt =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_tyannopt\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_tyannopt inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,":")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typ(input,pos)
+   in
+      if notNone t then (SOME ((SOME ($t)))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; SOME ((NONE)))
+   end
+)
+            val _ = cacheupd cache_tyannopt inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_declist (input,pos) : res_declist =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_declist\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_declist inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      fun fx () = let
+         val prestate = !pos
+         val t = (parse_dec(input,pos))
+      in
+        if notNone t then (valOf t) :: fx () else (pos := prestate; [])
+      end
+   in
+      SOME (fx())
+   end
+)
+            val _ = cacheupd cache_declist inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_sdeclist (input,pos) : res_sdeclist =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_sdeclist\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_sdeclist inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      fun fx () = let
+         val prestate = !pos
+         val t = (parse_sdec(input,pos))
+      in
+        if notNone t then (valOf t) :: fx () else (pos := prestate; [])
+      end
+   in
+      SOME (fx())
+   end
+)
+            val _ = cacheupd cache_sdeclist inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_dec (input,pos) : res_dec =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_dec\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_dec inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"val")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val v = parse_valbind(input,pos)
+   in
+      if notNone v then (SOME ((P.ValDec($v,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"bind")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i1 = parse_longid(input,pos)
+   in
+      if notNone i1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"to")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i2 = parse_longid(input,pos)
+   in
+      if notNone i2 then (SOME ((P.ClassBind($i1,$i2,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"type")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val v = parse_typebind(input,pos)
+   in
+      if notNone v then (SOME ((P.TypeDec($v,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"datatype")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"datatype")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val l = parse_longid(input,pos)
+   in
+      if notNone l then (SOME ((P.DatatypeAssign ($i,$l,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"datatype")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val d = parse_databind(input,pos)
+   in
+      if notNone d then (SOME ((P.DatatypeDec ($d,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"fun")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val f = parse_funbind(input,pos)
+   in
+      if notNone f then (SOME ((P.FunDec ($f,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"structure")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s = parse_strbind(input,pos)
+   in
+      if notNone s then (SOME ((P.StructDec ($s,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"infixr")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val d = parse_digit(input,pos)
+   in
+      if notNone d then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (SOME ((P.InfixrDec ($d,$i,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"infixr")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (SOME ((P.InfixrDec ("",$i,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"infix")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val d = parse_digit(input,pos)
+   in
+      if notNone d then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (SOME ((P.InfixDec ($d,$i,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"infix")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (SOME ((P.InfixDec ("",$i,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"exception")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"of")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typ(input,pos)
+   in
+      if notNone t then (SOME ((P.ExnDec ($i,SOME ($t),(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"exception")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (SOME ((P.ExnDec ($i,NONE,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"open")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_longid(input,pos)
+   in
+      if notNone i then (SOME ((P.OpenDec ($i,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"_import")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i1 = parse_id(input,pos)
+   in
+      if notNone i1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,":")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typ(input,pos)
+   in
+      if notNone t then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"as")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i2 = parse_id(input,pos)
+   in
+      if notNone i2 then (SOME ((P.Import ($i1,$t,$i2,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_dec inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_sdec (input,pos) : res_sdec =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_sdec\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_sdec inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"val")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val v = parse_valdesc(input,pos)
+   in
+      if notNone v then (SOME ((P.ValDesc($v,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"type")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val v = parse_typedesc(input,pos)
+   in
+      if notNone v then (SOME ((P.TypeDesc($v,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"datatype")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"datatype")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val l = parse_longid(input,pos)
+   in
+      if notNone l then (SOME ((P.DatatypeAssign ($i,$l,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"datatype")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val d = parse_databind(input,pos)
+   in
+      if notNone d then (SOME ((P.DatatypeDec ($d,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"structure")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s = parse_strdesc(input,pos)
+   in
+      if notNone s then (SOME ((P.StructDesc($s,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_sdec inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_valdesc (input,pos) : res_valdesc =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_valdesc\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_valdesc inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,":")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typ(input,pos)
+   in
+      if notNone t then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"and")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val v = parse_valdesc(input,pos)
+   in
+      if notNone v then (SOME ((P.ValDescBind (P.IdPat($i,(!pos,!kuruFile)),$t,(!pos,!kuruFile)) :: $v))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,":")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typ(input,pos)
+   in
+      if notNone t then (SOME (([P.ValDescBind (P.IdPat($i,(!pos,!kuruFile)),$t,(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_valdesc inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_typedesc (input,pos) : res_typedesc =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_typedesc\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_typedesc inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_tyvars(input,pos)
+   in
+      if notNone t then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"and")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val v = parse_typedesc(input,pos)
+   in
+      if notNone v then (SOME ((P.TypeDescBind ($t,$i,(!pos,!kuruFile)) :: $v))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_tyvars(input,pos)
+   in
+      if notNone t then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (SOME (([P.TypeDescBind ($t,$i,(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_typedesc inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_strdesc (input,pos) : res_strdesc =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_strdesc\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_strdesc inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,":")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s = parse_sign(input,pos)
+   in
+      if notNone s then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"and")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val st = parse_strdesc(input,pos)
+   in
+      if notNone st then (SOME ((P.StructDescBind ($i,$s,(!pos,!kuruFile)) :: $st))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,":")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s = parse_sign(input,pos)
+   in
+      if notNone s then (SOME (([P.StructDescBind ($i,$s,(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_strdesc inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_valbind (input,pos) : res_valbind =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_valbind\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_valbind inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"rec")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val v1 = parse_valbind(input,pos)
+   in
+      if notNone v1 then (SOME (([P.ValRec ($v1,(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"rec")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val v = parse_valbind(input,pos)
+   in
+      if notNone v then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then SOME (([P.ValRec ($v,(!pos,!kuruFile))]))   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val p = parse_patel(input,pos)
+   in
+      if notNone p then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"and")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val v = parse_valbind(input,pos)
+   in
+      if notNone v then (SOME ((P.ValBind ($p,$e,(!pos,!kuruFile)) :: $v))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val p = parse_patel(input,pos)
+   in
+      if notNone p then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (SOME (([P.ValBind ($p,$e,(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_valbind inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_tyvarlist (input,pos) : res_tyvarlist =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_tyvarlist\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_tyvarlist inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val v = parse_var(input,pos)
+   in
+      if notNone v then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,",")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_tyvarlist(input,pos)
+   in
+      if notNone t then (SOME (($v :: $t))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val v = parse_var(input,pos)
+   in
+      if notNone v then (SOME (([$v]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_tyvarlist inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_tyvars (input,pos) : res_tyvars =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_tyvars\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_tyvars inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"(")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val l = parse_tyvarlist(input,pos)
+   in
+      if notNone l then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,")")
+   in
+      if notNone s1' then SOME (($l))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val v = parse_var(input,pos)
+   in
+      if notNone v then (SOME (([$v]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; SOME (([])))
+   end
+)
+   end
+)
+            val _ = cacheupd cache_tyvars inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_typebind (input,pos) : res_typebind =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_typebind\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_typebind inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val tv = parse_tyvars(input,pos)
+   in
+      if notNone tv then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typ(input,pos)
+   in
+      if notNone t then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"and")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val l = parse_typebind(input,pos)
+   in
+      if notNone l then (SOME ((P.TypeBind($tv,
+                                     P.TyName ($i,(!pos,!kuruFile)),$t,(!pos,!kuruFile)) :: $l))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val tv = parse_tyvars(input,pos)
+   in
+      if notNone tv then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typ(input,pos)
+   in
+      if notNone t then (SOME (([P.TypeBind($tv,P.TyName ($i,(!pos,!kuruFile)),$t,(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_typebind inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_funbind (input,pos) : res_funbind =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_funbind\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_funbind inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val f = parse_funmatch(input,pos)
+   in
+      if notNone f then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"and")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val l = parse_funbind(input,pos)
+   in
+      if notNone l then (SOME (($f :: $l))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val f = parse_funmatch(input,pos)
+   in
+      if notNone f then (SOME (([$f]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_funbind inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_funmatch (input,pos) : res_funmatch =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_funmatch\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_funmatch inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"op")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val l = parse_patapp(input,pos)
+   in
+      if notNone l then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_tyannopt(input,pos)
+   in
+      if notNone t then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"|")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val f = parse_funmatch(input,pos)
+   in
+      if notNone f then (SOME ((P.FunMatch (P.OpExp ($i,(!pos,!kuruFile)),$l,$t,$e,(!pos,!kuruFile)) :: $f))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"op")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val l = parse_patapp(input,pos)
+   in
+      if notNone l then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_tyannopt(input,pos)
+   in
+      if notNone t then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (SOME (([P.FunMatch(P.OpExp ($i,(!pos,!kuruFile)),$l,$t,$e,(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val l = parse_patapp(input,pos)
+   in
+      if notNone l then (   let
+      val prestate = !pos
+      val t = parse_tyannopt(input,pos)
+   in
+      if notNone t then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"|")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val f = parse_funmatch(input,pos)
+   in
+      if notNone f then (SOME ((P.FunMatch ($i,$l,$t,$e,(!pos,!kuruFile)) :: $f))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val l = parse_patapp(input,pos)
+   in
+      if notNone l then (   let
+      val prestate = !pos
+      val t = parse_tyannopt(input,pos)
+   in
+      if notNone t then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val e = parse_exp(input,pos)
+   in
+      if notNone e then (SOME (([P.FunMatch ($i,$l,$t,$e,(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_funmatch inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_databind (input,pos) : res_databind =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_databind\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_databind inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val tv = parse_tyvars(input,pos)
+   in
+      if notNone tv then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val c = parse_conbind(input,pos)
+   in
+      if notNone c then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"and")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val d = parse_databind(input,pos)
+   in
+      if notNone d then (SOME ((P.DataBind($tv,$i,$c,(!pos,!kuruFile)) :: $d))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val tv = parse_tyvars(input,pos)
+   in
+      if notNone tv then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val c = parse_conbind(input,pos)
+   in
+      if notNone c then (SOME (([P.DataBind($tv,$i,$c,(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_databind inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_conbind (input,pos) : res_conbind =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_conbind\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_conbind inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"of")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typ(input,pos)
+   in
+      if notNone t then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"|")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val c = parse_conbind(input,pos)
+   in
+      if notNone c then (SOME ((P.ConBind($i,SOME ($t),(!pos,!kuruFile)) :: $c))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"of")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typ(input,pos)
+   in
+      if notNone t then (SOME (([P.ConBind($i,SOME ($t),(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"|")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val c = parse_conbind(input,pos)
+   in
+      if notNone c then (SOME ((P.ConBind($i,NONE,(!pos,!kuruFile)) :: $c))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (SOME (([P.ConBind($i,NONE,(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_conbind inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_strbind (input,pos) : res_strbind =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_strbind\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_strbind inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val a = parse_sigasc_opt(input,pos)
+   in
+      if notNone a then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s = parse_str(input,pos)
+   in
+      if notNone s then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"and")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val st = parse_strbind(input,pos)
+   in
+      if notNone st then (SOME ((P.StructBind($i,$a,$s,(!pos,!kuruFile)) :: $st))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val a = parse_sigasc_opt(input,pos)
+   in
+      if notNone a then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s = parse_str(input,pos)
+   in
+      if notNone s then (SOME (([P.StructBind($i,$a,$s,(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_strbind inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_sigasc_opt (input,pos) : res_sigasc_opt =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_sigasc_opt\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_sigasc_opt inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,":>")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s = parse_sign(input,pos)
+   in
+      if notNone s then (SOME ((P.AscribeOpaque ($s)))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,":")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s = parse_sign(input,pos)
+   in
+      if notNone s then (SOME ((P.Ascribe ($s)))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; SOME ((P.Implicit)))
+   end
+)
+   end
+)
+            val _ = cacheupd cache_sigasc_opt inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_sigbind (input,pos) : res_sigbind =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_sigbind\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_sigbind inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s = parse_sign(input,pos)
+   in
+      if notNone s then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"and")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val st = parse_sigbind(input,pos)
+   in
+      if notNone st then (SOME ((P.SigBind($i,$s,(!pos,!kuruFile)) :: $st))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s = parse_sign(input,pos)
+   in
+      if notNone s then (SOME (([P.SigBind($i,$s,(!pos,!kuruFile))]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_sigbind inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_str (input,pos) : res_str =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_str\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_str inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"struct")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val d = parse_declist(input,pos)
+   in
+      if notNone d then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"end")
+   in
+      if notNone s1' then SOME ((P.Structure($d,(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; parse_longid(input,pos))
+   end
+)
+            val _ = cacheupd cache_str inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_sign (input,pos) : res_sign =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_sign\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_sign inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"sig")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val d = parse_sdeclist(input,pos)
+   in
+      if notNone d then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"end")
+   in
+      if notNone s1' then SOME ((P.Signature($d,(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (SOME (($i))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_sign inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_programel (input,pos) : res_programel =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_programel\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_programel inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then parse_dec(input,pos)   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"signature")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s = parse_sigbind(input,pos)
+   in
+      if notNone s then (SOME ((P.SigDec ($s,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_programel inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_program (input,pos) : res_program =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_program\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_program inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val p1 = parse_programel(input,pos)
+   in
+      if notNone p1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,";")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p2 = parse_program(input,pos)
+   in
+      if notNone p2 then (SOME (($p1 :: $p2))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val p1 = parse_programel(input,pos)
+   in
+      if notNone p1 then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val p2 = parse_program(input,pos)
+   in
+      if notNone p2 then (SOME (($p1 :: $p2))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val p = parse_programel(input,pos)
+   in
+      if notNone p then (SOME (([$p]))) else (pos := prestate;NONE)
+   end
+)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_program inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+and kupeg_reset () =
+let
+  val _ = cache_program := []
+  val _ = cache_programel := []
+  val _ = cache_sign := []
+  val _ = cache_str := []
+  val _ = cache_sigbind := []
+  val _ = cache_sigasc_opt := []
+  val _ = cache_strbind := []
+  val _ = cache_conbind := []
+  val _ = cache_databind := []
+  val _ = cache_funmatch := []
+  val _ = cache_funbind := []
+  val _ = cache_typebind := []
+  val _ = cache_tyvars := []
+  val _ = cache_tyvarlist := []
+  val _ = cache_valbind := []
+  val _ = cache_strdesc := []
+  val _ = cache_typedesc := []
+  val _ = cache_valdesc := []
+  val _ = cache_sdec := []
+  val _ = cache_dec := []
+  val _ = cache_sdeclist := []
+  val _ = cache_declist := []
+  val _ = cache_tyannopt := []
+  val _ = cache_typapp := []
+  val _ = cache_typel := []
+  val _ = cache_typ := []
+  val _ = cache_patapp := []
+  val _ = cache_patlist := []
+  val _ = cache_patel := []
+  val _ = cache_pat := []
+  val _ = cache_match := []
+  val _ = cache_expseq := []
+  val _ = cache_explist := []
+  val _ = cache_expapp := []
+  val _ = cache_expel := []
+  val _ = cache_exp := []
+  val _ = cache_longid := []
+  val _ = cache_var := []
+  val _ = cache_idrest := []
+  val _ = cache_id := []
+  val _ = cache_keyword := []
+  val _ = cache_nonid := []
+  val _ = cache_reserved := []
+  val _ = cache_con := []
+  val _ = cache_stringcont := []
+  val _ = cache_string := []
+  val _ = cache_charconst := []
+  val _ = cache_negat := []
+  val _ = cache_real := []
+  val _ = cache_int := []
+  val _ = cache_num := []
+  val _ = cache_commentc := []
+  val _ = cache_comment := []
+  val _ = cache__ := []
+  val _ = cache_sp := []
+
+   val _ = errorPos := 0
+in
+   ()
+end
+
+end

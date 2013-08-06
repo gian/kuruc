@@ -1,11 +1,7 @@
-all: bin/kuruc
-
-bin/kuruc:
+all:
 	make -C src
 
 clean:
 	make -C src clean
 
-.PHONY: clean bin/kuruc
-
-
+.PHONY: all clean
