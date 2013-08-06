@@ -3,8 +3,12 @@ COMPILER=mlton
 KUPEG=$(BIN)/kupeg
 
 SMLDEPS= \
-	config.sml debug.sml main.sml version.sml \
+	config.sml debug.sml main.sml version.sml compile.sml \
 	frontend/error.sml frontend/parsetree.sml frontend/kuru.kpg.sml \
+	frontend/parsetree_app_apply.sml frontend/parsetree_transformer.sml \
+	frontend/parsetree_infix_pattern.sml frontend/parsetree_list_cons.sml \
+	frontend/parsetree_promote_exns.sml frontend/parsetree_infix_apply.sml \
+	frontend/parsetree_infix_unflatten.sml \
 	ast/typed_ast.sml ast/symbol.sml ast/symbol.sig
 
 all: $(BIN)/kuruc

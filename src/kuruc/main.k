@@ -109,7 +109,7 @@ struct
             raise Fail "Missing filename") else ()
    
    in
-      (* Compile.compile args' *) ()
+      Compile.compile args'
    end
 end   
    
