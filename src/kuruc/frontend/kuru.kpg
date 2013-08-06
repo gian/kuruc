@@ -150,7 +150,7 @@ reserved       <- "!" / "%" / "&" / "$" / "+" / "-" /  "/"
 nonid          <- "(" / ")" / "[" / "]" / "." / ";" / "," / "|" /
                   "~" / "#" / ":" / "=>" / "=". 
 
-keyword        <- "val" / "let" / "if" / "then" / "else" / "datatype"
+keyword        <- "val" / "let" / "if" / "then" / "else" / "datatype" / "withtype"
                 / "type" / "fn" / "fun" / "and" / "end" / "in" /
                   "structure" / "struct" / "of" / "case" /
                   "handle" / "raise" / "infixr" / "infix" /
@@ -372,6 +372,8 @@ funmatch       <- "op" _ i: id _ l: patapp _ t: tyannopt _"="_
 
 databind       <- _ tv: tyvars _ i: id _ "=" _ c: conbind _ "and" d: databind
                   -> (P.DataBind($tv,$i,$c,(!pos,!kuruFile)) :: $d)
+                /  _ tv: tyvars _ i: id _ "=" _ c: conbind _ "withtype" t: typebind
+                  -> (P.DataBind($tv,$i,$c,(!pos,!kuruFile)) :: [])
                 / _ tv: tyvars _ i: id _ "=" _ c: conbind
                   -> ([P.DataBind($tv,$i,$c,(!pos,!kuruFile))]).
 

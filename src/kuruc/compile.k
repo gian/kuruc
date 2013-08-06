@@ -154,78 +154,8 @@ struct
          val _ = Debug.endStage "ParseTreeTransform"
 
          (* Stage 3 - Type inference/checking *)
-         (* val _ = Debug.startStage 1 "TypeInference"
-         val fl''' = List.concat (map TypeCheck.check fl'')
-         val _ = Debug.endStage "TypeInference"
-
-         val _ = Debug.print Debug.internal ("Typed program:\n")
-         val _ = Debug.print Debug.internal
-            ("\n" ^ TypedAST.prettyPrint fl''' ^ "\n")
-
-         val _ = Debug.startStage 1 "Monomorphisation"
-         val flmono = Monomorphise.monomorphise fl'''
-         val _ = Debug.endStage "Monomorphisation"
-
-         val _ = Debug.print Debug.internal ("Monomorphic program:\n")
-         val _ = Debug.print Debug.internal
-            ("\n" ^ Intermediate.prettyPrint flmono ^ "\n")
-
-         (* Stage 4 - Optimisation *)
-
-         (* val optfl = Optimise.optimise flmono *)
-
-         (* Stage 5 - Closure conversion *)
-
-
-         (* val _ = Debug.startStage 1 "ClosureConversion"
-         val fcc = ClosureConvert.convert flmono
-         val _ = Debug.print Debug.internal ("Closure converted program:\n")
-         val _ = Debug.print Debug.internal
-            ("\n" ^ Intermediate.prettyPrint (fcc) ^ "\n")
-         val _ = Debug.endStage "ClosureConversion"
-        *)
-
-         (* Error Checking State: We proceed no further if errors occurred. *)
-         val _ = if Error.getErrorCount () > 0 then
-                  raise Fail ("Errors: " ^ Int.toString (Error.getErrorCount()))
-                  else () *)
-
-      in
-         (* compileJava (flmono) *) ()
-      end
-(*
-      and compileJava fcc =
-      let
-         val _ = Debug.print Debug.verbose
-            "Java code generator backend selected\n"
-
-         val _ = Debug.startStage 1 "JavaTranslate"
-         val (seg,d') = JavaTranslate.translate fcc
-         val _ = Debug.endStage "JavaTranslate"
-
-         val _ = Debug.startStage 1 "CodeGen"
-         val code = JavaCodeGen.codegen (seg, d')
-         val _ = Debug.print Debug.internal ("Generated code:\n" ^ code ^ "\n")
-
-         val _ = Debug.startStage 2 "Emit"
-         val (srcPath, codeLocation) = JavaCodeGen.emit code
-         val _ = Debug.endStage "Emit"
-
-         val _ = Debug.endStage "CodeGen"
-
-         (* Stage 7 - Javac invocation *)
-         val _ = Debug.startStage 1 "javac"
-         val _ = JavacOperations.compile (codeLocation, Config.getOutputFile ())
-         val _ = Debug.endStage "javac"
-
-         (* Stage 7 - JAR invocation *)
-         val _ = Debug.startStage 1 "jar"
-         val _ = JavacOperations.jar (srcPath, Config.getOutputFile () ^ ".jar")
-         val _ = Debug.endStage "jar"
-
-         val _ = Debug.endStage "Compile"
       in
          ()
-      end *)
+      end
 end
 

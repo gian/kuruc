@@ -1075,6 +1075,11 @@ and parse_keyword (input,pos) : res_keyword =
       if notNone opt1 then opt1 else
       (pos := prestate;    let
       val prestate = !pos
+      val opt1 = literal(input,pos,"withtype")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
       val opt1 = literal(input,pos,"type")
    in
       if notNone opt1 then opt1 else
@@ -1184,6 +1189,8 @@ and parse_keyword (input,pos) : res_keyword =
    in
       if notNone opt1 then opt1 else
       (pos := prestate; literal(input,pos,"to"))
+   end
+)
    end
 )
    end
@@ -5930,6 +5937,77 @@ and parse_databind (input,pos) : res_databind =
       if notNone opt1 then opt1 else
       (pos := prestate;    let
       val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val tv = parse_tyvars(input,pos)
+   in
+      if notNone tv then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_id(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"=")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val c = parse_conbind(input,pos)
+   in
+      if notNone c then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"withtype")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val t = parse_typebind(input,pos)
+   in
+      if notNone t then (SOME ((P.DataBind($tv,$i,$c,(!pos,!kuruFile)) :: []))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
       val s1' = parse__(input,pos)
    in
       if notNone s1' then    let
@@ -5975,6 +6053,8 @@ and parse_databind (input,pos) : res_databind =
 ) else (pos := prestate;NONE)
    end
    else (pos := prestate; NONE)
+   end
+)
    end
 )
    end
