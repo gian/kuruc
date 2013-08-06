@@ -96,7 +96,6 @@ struct
 
    fun getOptimiser () = !optimiserLevel
    fun getMachineWord () = !machineWord
-   fun getKeepLLVM () = !keepLLVM
    fun getLibPath () = !libPath
    fun getMaxErrors () = !maxErrors
    fun getSafe () = !safe

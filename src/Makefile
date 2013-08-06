@@ -4,7 +4,7 @@ KUPEG=$(BIN)/kupeg
 
 SMLDEPS= \
 	config.sml debug.sml main.sml version.sml \
-	ast/typed_ast.sml
+	ast/typed_ast.sml ast/symbol.sml ast/symbol.sig
 
 all: $(BIN)/kuruc
 
@@ -19,6 +19,9 @@ frontend/kuru.kpg.k: frontend/kuru.kpg
 	$(MAKE) -C frontend kuru.kpg.k
 
 %.sml: %.k
+	ln -sf $(notdir $<) $@
+
+%.sig: %.ks
 	ln -sf $(notdir $<) $@
 
 version.k: version.sh

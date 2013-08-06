@@ -52,15 +52,11 @@ struct
              "\t-d\t\tEnable debugging output.\n" ^
              "\t-dd\t\tEnable noisy debugging mode.\n" ^
              "\n   Compilation:\n" ^
-             "\t-backend {c|llvm}\tSelect the backend to use.\n" ^
-             "\t-keep-llvm\tKeep intermediate LLVM bitcode files.\n" ^
-             "\t-m16\t\tSet machine word size to 16 bits.\n" ^
-             "\t-m32\t\t(Default) Set machine word size to 32 bits.\n" ^
-             "\t-m64\t\tSet machine word size to 64 bits.\n" ^
-             "\n   C Backend Options:\n" ^
-             "\t-cc-args <args>\tPass these arguments to the C compiler.\n" ^
+             "\t-backend {java}\tSelect the backend to use.\n" ^
+             "\n   Javac Backend Options:\n" ^
+             "\t-javac-args <args>\tPass these arguments to the javac compiler.\n" ^
              "\n   Libraries:\n" ^
-             "\t-L [path]\tSet the library search path (colon-separated)\n" ^
+             "\t-cp [path]\tSet the class path (colon-separated)\n" ^
              "\t-max-errors n\tReport no more than n errors.\n" ^
              "\t-safe\t\tImport only the Safe module, for sandbox environments\n"^
              "\t-no-basis\tDo not import the basis library.\n")
@@ -96,17 +92,13 @@ struct
      | parseArgs ("-O1"::t) = (Config.setOptimiser 1; parseArgs t)
      | parseArgs ("-O2"::t) = (Config.setOptimiser 2; parseArgs t)
      | parseArgs ("-O3"::t) = (Config.setOptimiser 3; parseArgs t)
-     | parseArgs ("-m16"::t) = (Config.setMachineWord 16; parseArgs t)
-     | parseArgs ("-m32"::t) = (Config.setMachineWord 32; parseArgs t)
-     | parseArgs ("-m64"::t) = (Config.setMachineWord 64; parseArgs t)
-     | parseArgs ("-keep-llvm"::t) = (Config.setKeepLLVM true; parseArgs t)
      | parseArgs ("-max-errors"::m::t) = (Config.setMaxErrors m; parseArgs t)
      | parseArgs ("-safe"::t) = (Config.setSafe true; parseArgs t)
      | parseArgs ("-no-basis"::t) = (Config.setBasis false; parseArgs t)
      | parseArgs ("-o"::f::t) = (Config.setOutputFile f; parseArgs t)
-     | parseArgs ("-L"::f::t) = (Config.setLibPath f; parseArgs t)
+     | parseArgs ("-cp"::f::t) = (Config.setLibPath f; parseArgs t)
      | parseArgs ("-backend"::f::t) = (Config.setBackend f; parseArgs t)
-     | parseArgs ("-cc-args"::f::t) = (Config.setCCArgs f; parseArgs t)
+     | parseArgs ("-javac-args"::f::t) = (Config.setCCArgs f; parseArgs t)
      | parseArgs (h::t) = h :: parseArgs t
   
    fun main () =
