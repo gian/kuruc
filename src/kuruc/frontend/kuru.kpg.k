@@ -45,12 +45,21 @@ val srcFileLineNum = ref 1
 
 val kuruFile = ref "__UNKNOWN__"
 
-fun escape "n" = "\n"
-  | escape "\\" = "\\"
-  | escape "0" = String.str (Char.chr 0)
-  | escape "t" = "\t"
-  | escape "\"" = "\\\""
-  | escape x = x
+fun escape 110 = [92, 110] (* "\n" *)
+  | escape 92 = [92] (* "\\" *)
+  | escape 48 = [0] (* "0" *)
+  | escape 116 = [92, 116] (* "\t" *)
+  | escape 34 = [92, 34] (* "\"" *)
+  | escape x = [x]
+
+fun unescape [92, x] = x
+  | unescape [x] = x
+  | unescape _ = raise Fail ("Invalid escape sequence")
+
+fun strOrd x =
+   case String.explode x of
+      [c] => Char.ord c
+     | _ => raise Fail ("Invalid character sequence")
 
 
 type res_char = string option
@@ -66,7 +75,7 @@ type res_real = P.pt option
 type res_negat = bool option
 type res_charconst = P.pt option
 type res_string = P.pt option
-type res_stringcont = string option
+type res_stringcont = int list option
 type res_con = P.pt option
 type res_reserved = string option
 type res_nonid = string option
@@ -596,7 +605,7 @@ and parse_charconst (input,pos) : res_charconst =
       val prestate = !pos
       val s1' = literal(input,pos,"\"")
    in
-      if notNone s1' then SOME ((P.Char ($c,(!pos,!kuruFile))))   else (pos := prestate; NONE)
+      if notNone s1' then SOME ((P.Char (unescape ($c),(!pos,!kuruFile))))   else (pos := prestate; NONE)
    end
 ) else (pos := prestate;NONE)
    end
@@ -698,7 +707,7 @@ and parse_stringcont (input,pos) : res_stringcont =
       val prestate = !pos
       val s = parse_stringcont(input,pos)
    in
-      if notNone s then (SOME (($c ^ $s))) else (pos := prestate;NONE)
+      if notNone s then (SOME (((strOrd ($c)) :: $s))) else (pos := prestate;NONE)
    end
 ) else (pos := prestate;NONE)
    end
@@ -723,7 +732,7 @@ and parse_stringcont (input,pos) : res_stringcont =
       val prestate = !pos
       val s = parse_stringcont(input,pos)
    in
-      if notNone s then (SOME (((escape ($c)) ^ $s))) else (pos := prestate;NONE)
+      if notNone s then (SOME (((escape (strOrd ($c))) @ $s))) else (pos := prestate;NONE)
    end
 ) else (pos := prestate;NONE)
    end
@@ -732,7 +741,7 @@ and parse_stringcont (input,pos) : res_stringcont =
 
    in
       if notNone opt1 then opt1 else
-      (pos := prestate; SOME (("")))
+      (pos := prestate; SOME (([])))
    end
 )
    end

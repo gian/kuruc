@@ -44,8 +44,8 @@ struct
    and pt =
       Int of bool * string * pos
     | Real of bool * string * string * (bool * string) option * pos
-    | Char of string * pos
-    | String of string * pos
+    | Char of int * pos
+    | String of int list * pos
     | Ident of string * pos
     | LongId of pt * pt * pos
 	 | TyId of pt * pos
@@ -119,14 +119,17 @@ struct
     | ClassImpl of pt * pt * pt * pos
     | Import of pt * pt * pt * pos
 
+   fun istr [] = ""
+     | istr (h::t) = String.str (Char.chr h) ^ istr t
+
    fun pp (Int (b,s,_)) = "Int [" ^ (if b then "~" else "") ^ s ^ "]" 
      | pp (Real (b,s1,s2,NONE,_)) = 
       "Real [" ^ (if b then "~" else "") ^ s1 ^ "." ^ s2 ^ "]" 
      | pp (Real (b,s1,s2,SOME (b2,s3),_)) = 
       "Real [" ^ (if b then "~" else "") ^ s1 ^ "." ^ s2 ^
          "e" ^ (if b2 then "~" else "") ^ s3 ^ "]"
-     | pp (Char (s,_)) = "Char [#\"" ^ s ^ "\"]"
-     | pp (String (s,_)) = "String [\"" ^ s ^ "\"]"
+     | pp (Char (s,_)) = "Char [#\"" ^ String.str (Char.chr s) ^ "\"]"
+     | pp (String (s,_)) = "String [\"" ^ istr s ^ "\"]"
      | pp (Ident (s,_)) = "Ident [" ^ s ^ "]"
      | pp (Var (p,_)) = "Var [" ^ pp p ^ "]"
      | pp (TyId (p,_)) = "TyId [" ^ pp p ^ "]"

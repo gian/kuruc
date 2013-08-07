@@ -49,7 +49,7 @@ structure P = ParseTree
 %nonterm negat of bool
 %nonterm charconst of P.pt
 %nonterm string of P.pt
-%nonterm stringcont of string
+%nonterm stringcont of int list
 %nonterm con of P.pt
 %nonterm reserved of string
 %nonterm nonid of string
@@ -100,12 +100,21 @@ val srcFileLineNum = ref 1
 
 val kuruFile = ref "__UNKNOWN__"
 
-fun escape "n" = "\n"
-  | escape "\\" = "\\"
-  | escape "0" = String.str (Char.chr 0)
-  | escape "t" = "\t"
-  | escape "\"" = "\\\""
-  | escape x = x
+fun escape 110 = [92, 110] (* "\n" *)
+  | escape 92 = [92] (* "\\" *)
+  | escape 48 = [0] (* "0" *)
+  | escape 116 = [92, 116] (* "\t" *)
+  | escape 34 = [92, 34] (* "\"" *)
+  | escape x = [x]
+
+fun unescape [92, x] = x
+  | unescape [x] = x
+  | unescape _ = raise Fail ("Invalid escape sequence")
+
+fun strOrd x =
+   case String.explode x of
+      [c] => Char.ord c
+     | _ => raise Fail ("Invalid character sequence")
 
 %%
 
@@ -130,13 +139,13 @@ real           <- n1: negat d1: num "." d2: num "e" n2: negat d3: num ->
 negat          <- "~" -> (true)
                 /     -> (false).
 
-charconst      <- "#" "\"" c: stringcont "\"" -> (P.Char ($c,(!pos,!kuruFile))).
+charconst      <- "#" "\"" c: stringcont "\"" -> (P.Char (unescape ($c),(!pos,!kuruFile))).
 
 string         <- "\"" s: stringcont "\"" _ -> (P.String ($s,(!pos,!kuruFile))).
 
-stringcont     <- !"\\" !"\"" c: char s: stringcont -> ($c ^ $s)
-                / b: "\\" c: char s: stringcont -> ((escape ($c)) ^ $s)
-                / -> ("").
+stringcont     <- !"\\" !"\"" c: char s: stringcont -> ((strOrd ($c)) :: $s)
+                / b: "\\" c: char s: stringcont -> ((escape (strOrd ($c))) @ $s)
+                / -> ([]).
 
 con            <- real / int / charconst / string.
 
