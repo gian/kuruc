@@ -128,7 +128,8 @@ struct
    fun ppdef ind _ = indent ind ^ "(* definition *)"
 
    fun ppclauses ind symb ((pat, exp)::t) =
-      indent ind ^ "\n  | " ^ S.toString symb ^ pppat pat ^ " = " ^ ppexp ind exp ^
+      "\n" ^ indent ind ^ "  | " ^
+         S.toString symb ^ pppat pat ^ " = " ^ ppexp ind exp ^
          ppclauses ind symb t
      | ppclauses ind symb [] = ""
 
@@ -168,7 +169,7 @@ struct
          indent ind ^ 
             String.concatWith 
                ("\n" ^ indent (ind) ^ "and ") 
-                  (map (ppdec 0) decls)
+                  (map (ppdec ind) decls)
 
    fun prettyPrint [] = ""
      | prettyPrint (h::t) = ppdec 0 h ^ "\n\n" ^ prettyPrint t
