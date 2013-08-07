@@ -64,6 +64,7 @@ struct
     | ConstructorPattern of constructor_tag * pattern option * ty * pos
     | IdentifierPattern of symbol * ty * pos
     | AsPattern of symbol * pattern * ty * pos
+    | CurriedPattern of pattern list * ty * pos
     | UnitPattern of pos
 
    datatype expression =
@@ -118,9 +119,18 @@ struct
 
    fun pppat (LiteralPattern (p, _)) = pplit p
      | pppat (IdentifierPattern (symbol, ty, pos)) = S.toString symbol
+     | pppat (TuplePattern (pats, _, _)) = 
+         "(" ^ String.concatWith "," (map pppat pats) ^ ")"
+     | pppat (CurriedPattern (pats, _, _)) =
+         String.concatWith " " (map pppat pats)
      | pppat _ = "(* pat *)"
 
    fun ppdef ind _ = indent ind ^ "(* definition *)"
+
+   fun ppclauses ind symb ((pat, exp)::t) =
+      indent ind ^ "\n  | " ^ S.toString symb ^ pppat pat ^ " = " ^ ppexp ind exp ^
+         ppclauses ind symb t
+     | ppclauses ind symb [] = ""
 
    fun ppdec ind (StructureMod (symbol, NONE, str, _)) =
          indent ind ^ "structure " ^ S.toString symbol ^ " =\n" ^
@@ -151,9 +161,9 @@ struct
          indent ind ^ "val " ^ pppat pat ^ " = " ^ ppexp ind expr
      | ppdec ind (ValRecDec ((pat, expr), pos)) =
          indent ind ^ "val rec " ^ pppat pat ^ " = " ^ ppexp ind expr
-     | ppdec ind (FunDec (symbol, (pat, expr)::_, pos)) =
+     | ppdec ind (FunDec (symbol, (pat, expr)::t, pos)) =
          indent ind ^ "fun " ^ S.toString symbol ^ " " ^ pppat pat ^ " = " ^ 
-            ppexp ind expr ^ "..."
+            ppexp ind expr ^ ppclauses ind symbol t
      | ppdec ind (MutualDec (decls, pos)) = 
          indent ind ^ 
             String.concatWith 

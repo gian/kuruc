@@ -44,6 +44,12 @@ struct
             freshTy (),
             pos
          )
+     | toPat (P.TuplePat (l, pos)) =
+         A.TuplePattern (
+            map toPat l,
+            freshTy (),
+            pos
+         )
      | toPat _ = A.LiteralPattern (A.Unit, (0, "fake"))
    
    (** Deals with literals. *)
@@ -107,6 +113,32 @@ struct
      | toClause _ = 
          Error.bug("ParseTreeAstConverter", "Not implemented", (0, "fake"))
 
+   and toFunClause (P.FunMatch (i, [pat], _, exp, pos)) =
+         (toPat pat, toExp exp)
+     | toFunClause (P.FunMatch (i, pats, _, exp, pos)) =
+         (A.CurriedPattern (
+            map toPat pats,
+            freshTy (),
+            pos), 
+            toExp exp)
+     | toFunClause p = 
+         Error.bug("ParseTreeAstConverter", "Invalid fun clause", P.getPos p)
+
+
+   and getBindingName [] = raise Fail "ParseTreeAstConverter.getBindingName"
+     | getBindingName bindings =
+      let
+         val bindingName = ref ""
+         fun upd ((P.FunMatch (P.Ident (i, _), _, _, _, pos))::t) =
+            if ((!bindingName) <> "" andalso 
+               (!bindingName) <> i) then
+                  Error.fail ("Function clauses with different names", pos)
+            else (bindingName := i; upd t)
+           | upd [] = !bindingName
+      in
+         upd bindings
+      end
+
    (** Deals with top-level declarations. *)
    and toDecl [] = []
      | toDecl ((P.ValDec ([binding], pos))::t) =
@@ -119,16 +151,16 @@ struct
          ) :: toDecl t
      | toDecl ((P.FunDec ([binding], pos))::t) = 
          A.FunDec 
-            (S.fromString "foo" pos, 
-            [(A.UnitPattern pos, A.LiteralExpr (A.Unit, pos))], 
+            (S.fromString (getBindingName binding) pos, 
+            map toFunClause binding, 
             pos
          ) :: toDecl t
      | toDecl ((P.FunDec (bindings, pos))::t) = 
          A.MutualDec (
-            map (fn f => 
+            map (fn binding => 
                A.FunDec (
-                  S.fromString "foo" pos, 
-                  [(A.UnitPattern pos, A.LiteralExpr (A.Unit, pos))], 
+                  S.fromString (getBindingName binding) pos, 
+                  map toFunClause binding, 
                   pos
                )
             ) bindings,
