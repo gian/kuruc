@@ -35,48 +35,72 @@ struct
    structure A = TypedAst
    structure P = ParseTree
 
-   (** Deals with top-level constructs. *)
-   fun toModule [] = []
-     | toModule ((P.ValDec (binding, pos))::t) = 
-         A.DeclMod (A.OpenDec (Symbol.fromString "foo" pos, pos)) :: toModule t
-     | toModule ((P.FunDec (binding, pos))::t) = 
-         A.DeclMod (A.OpenDec (Symbol.fromString "foo" pos, pos)) :: toModule t
-     | toModule ((P.TypeDec (binding, pos))::t) = 
-         A.DeclMod (A.OpenDec (Symbol.fromString "foo" pos, pos)) :: toModule t
-     | toModule ((P.StructDec (l, pos))::t) =
-         toModule l @ toModule t
-     | toModule ((P.SigDec (l, pos))::t) =
-         toModule l @ toModule t
-     | toModule ((P.StructBind (P.Ident (ident, pos), ascr, body, pos'))::t) =
+   (** Deals with top-level declarations. *)
+   fun toDecl [] = []
+     | toDecl ((P.ValDec ([binding], pos))::t) =
+         A.ValDec ((A.UnitPattern pos, A.LiteralExpr (A.Unit, pos)), pos) ::
+            toDecl t
+     | toDecl ((P.ValDec (bindings, pos))::t) =
+         A.MutualDec (
+            map 
+               (fn x =>  A.ValDec ((A.UnitPattern pos, A.LiteralExpr (A.Unit, pos)), pos)) bindings,
+            pos
+         ) :: toDecl t
+     | toDecl ((P.FunDec (binding, pos))::t) = 
+         A.FunDec 
+            (S.fromString "foo" pos, 
+            [(A.UnitPattern pos, A.LiteralExpr (A.Unit, pos))], 
+            pos
+         ) :: toDecl t
+     | toDecl ((P.TypeDec (binding, pos))::t) = 
+         A.ValDec ((A.UnitPattern pos, A.LiteralExpr (A.Unit, pos)), pos) ::
+            toDecl t
+     | toDecl ((P.StructDec (l, pos))::t) =
+         toDecl l @ toDecl t
+     | toDecl ((P.SigDec (l, pos))::t) =
+         toDecl l @ toDecl t
+     | toDecl ((P.StructBind (P.Ident (ident, pos), ascr, P.Ident (ident', pos'), pos''))::t) =
+         A.StructureAssignMod (
+            S.fromString ident pos,
+            S.fromString ident' pos', (* TODO: Functor application? *)
+            pos''
+         ) :: toDecl t
+     | toDecl ((P.StructBind (P.Ident (ident, pos), ascr, body, pos'))::t) =
          A.StructureMod (
             Symbol.fromString ident pos,
             NONE,
-            hd (toModule [body]),
-            pos') :: toModule t
-     | toModule ((P.SigBind (P.Ident (ident, pos), body, pos'))::t) =
+            hd (toDecl [body]),
+            pos') :: toDecl t
+     | toDecl ((P.SigBind (P.Ident (ident, pos), body, pos'))::t) =
          A.SignatureMod (
             Symbol.fromString ident pos,
-            hd (toModule [body]),
-            pos') :: toModule t
-     | toModule ((P.Structure (decls, pos))::t) =
-         A.StructMod ([], pos) :: toModule t
-     | toModule ((P.Signature (defs, pos))::t) =
-         A.SigMod ([], pos) :: toModule t
-     | toModule ((P.OpenDec _)::t) = toModule t
-     | toModule ((P.DatatypeDec _)::t) = toModule t
-     | toModule ((P.InfixDec _)::t) = toModule t
-     | toModule ((P.InfixrDec _)::t) = toModule t
-     | toModule ((P.ExnDec _)::t) = toModule t
-     | toModule ((P.Import _)::t) = toModule t
-     | toModule (h::t) = 
-         Error.bug ("ParseTreeAstConverter", P.prettyPrint h, (0, "__fake__"))
+            hd (toDecl [body]),
+            pos') :: toDecl t
+     | toDecl ((P.Structure (decls, pos))::t) =
+         A.StructMod (
+            toDecl decls, 
+            pos
+         ) :: toDecl t
+     | toDecl ((P.Signature (defs, pos))::t) =
+         A.SigMod (
+            [], 
+            pos
+         ) :: toDecl t
+     | toDecl ((P.OpenDec _)::t) = toDecl t
+     | toDecl ((P.DatatypeDec _)::t) = toDecl t
+     | toDecl ((P.InfixDec _)::t) = toDecl t
+     | toDecl ((P.InfixrDec _)::t) = toDecl t
+     | toDecl ((P.ExnDec _)::t) = toDecl t
+     | toDecl ((P.Import _)::t) = toDecl t
+     | toDecl (p::_) = 
+         Error.bug ("ParseTreeAstConverter", P.prettyPrint p, P.getPos p)
 
    (** This needs to flatten a list of parse tree lists into a single AST *)
    fun convert program =
       let
          val flattened = List.concat program
       in
-         toModule flattened
+         toDecl flattened
       end
 end
 

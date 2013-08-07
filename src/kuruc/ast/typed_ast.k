@@ -85,60 +85,70 @@ struct
       ValDec of clause * pos
     | ValRecDec of clause * pos
     | FunDec of symbol * clause list * pos
-    | MutualDec of declaration * declaration * pos
+    | MutualDec of declaration list * pos
     | OpenDec of symbol * pos
-    | BindDec of symbol * module * pos
-
-   and definition =
-      ValDef of symbol * ty * pos
+    | BindDec of symbol * declaration * pos
+    | ValDef of symbol * ty * pos
     | TypDef of ty * ty * pos
-
-   and module =
-      StructureMod of symbol * module option * module * pos
-    | SignatureMod of symbol * module * pos
+    | StructureMod of symbol * declaration option * declaration * pos
+    | SignatureMod of symbol * declaration * pos
+    | StructureAssignMod of symbol * symbol * pos
     | StructMod of declaration list * pos
-    | SigMod of definition list * pos
+    | SigMod of declaration list * pos
     | RefMod of symbol * pos
-    | FunctorMod of symbol * functor_clause list * module * pos
-    | DeclMod of declaration
+    | FunctorMod of symbol * functor_clause list * declaration * pos
 
    withtype clause = pattern * expression
-        and functor_clause = module * module
+        and functor_clause = declaration * declaration
 
-   type program = module list
+   type program = declaration list
 
    fun indent 0 = ""
      | indent n = "   " ^ indent (n - 1)
 
-   fun ppdec ind _ = indent ind ^ "(* declaration *)"
-   
+   fun ppexp ind _ = "(* expr *)"
+
+   fun pppat _ = "(* pat *)"
+
    fun ppdef ind _ = indent ind ^ "(* definition *)"
 
-   fun ppmod ind (StructureMod (symbol, NONE, str, _)) =
+   fun ppdec ind (StructureMod (symbol, NONE, str, _)) =
          indent ind ^ "structure " ^ S.toString symbol ^ " =\n" ^
-            ppmod ind str
-     | ppmod ind (StructureMod (symbol, SOME sg, str, _)) =
+            ppdec ind str
+     | ppdec ind (StructureMod (symbol, SOME sg, str, _)) =
          indent ind ^ "structure " ^ S.toString symbol ^ " :\n" ^
-         ppmod (ind + 1) sg ^ 
+         ppdec (ind + 1) sg ^ 
          " =\n" ^
-         ppmod (ind + 1) str
-     | ppmod ind (SignatureMod (symbol, sg, _)) =
+         ppdec (ind + 1) str
+     | ppdec ind (SignatureMod (symbol, sg, _)) =
          indent ind ^ "signature " ^ S.toString symbol ^ " =\n" ^
-            ppmod ind sg
-     | ppmod ind (StructMod (decls, _)) =
+            ppdec ind sg
+     | ppdec ind (StructMod (decls, _)) =
          indent ind ^ "struct\n" ^
             String.concatWith "\n" (map (ppdec (ind + 1)) decls) ^ "\n" ^
          indent ind ^ "end"
-     | ppmod ind (SigMod (decls, _)) =
+     | ppdec ind (StructureAssignMod (lhs, rhs, pos)) =
+         indent ind ^ "structure " ^ S.toString lhs ^ " = " ^ S.toString rhs
+     | ppdec ind (SigMod (decls, _)) =
          indent ind ^ "sig\n" ^
             String.concatWith "\n" (map (ppdef (ind + 1)) decls) ^ "\n" ^
          indent ind ^ "end"
-     | ppmod ind (RefMod (symbol, _)) = indent ind ^ S.toString symbol 
-     | ppmod ind (FunctorMod (symbol, fclause, body, _)) = indent ind ^
+     | ppdec ind (RefMod (symbol, _)) = indent ind ^ S.toString symbol 
+     | ppdec ind (FunctorMod (symbol, fclause, body, _)) = indent ind ^
          "functor " ^ S.toString symbol ^ " (...) =\n" ^
-            ppmod ind body
-     | ppmod ind (DeclMod decl) = ppdec ind decl
+            ppdec ind body
+     | ppdec ind (ValDec ((pat, expr), pos)) =
+         indent ind ^ "val " ^ pppat pat ^ " = " ^ ppexp ind expr
+     | ppdec ind (ValRecDec ((pat, expr), pos)) =
+         indent ind ^ "val rec " ^ pppat pat ^ " = " ^ ppexp ind expr
+     | ppdec ind (FunDec (symbol, (pat, expr)::_, pos)) =
+         indent ind ^ "fun " ^ S.toString symbol ^ " " ^ pppat pat ^ " = " ^ 
+            ppexp ind expr ^ "..."
+     | ppdec ind (MutualDec (decls, pos)) = 
+         indent ind ^ String.concatWith "\nand " (map (ppdec ind) decls)
+
+
 
    fun prettyPrint [] = ""
-     | prettyPrint (h::t) = ppmod 0 h ^ "\n" ^ prettyPrint t
+     | prettyPrint (h::t) = ppdec 0 h ^ "\n\n" ^ prettyPrint t
 end
