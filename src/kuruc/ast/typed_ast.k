@@ -117,6 +117,7 @@ struct
      | ppexp ind _ = "(* expr *)"
 
    fun pppat (LiteralPattern (p, _)) = pplit p
+     | pppat (IdentifierPattern (symbol, ty, pos)) = S.toString symbol
      | pppat _ = "(* pat *)"
 
    fun ppdef ind _ = indent ind ^ "(* definition *)"
@@ -154,9 +155,10 @@ struct
          indent ind ^ "fun " ^ S.toString symbol ^ " " ^ pppat pat ^ " = " ^ 
             ppexp ind expr ^ "..."
      | ppdec ind (MutualDec (decls, pos)) = 
-         indent ind ^ String.concatWith "\nand " (map (ppdec ind) decls)
-
-
+         indent ind ^ 
+            String.concatWith 
+               ("\n" ^ indent (ind) ^ "and ") 
+                  (map (ppdec 0) decls)
 
    fun prettyPrint [] = ""
      | prettyPrint (h::t) = ppdec 0 h ^ "\n\n" ^ prettyPrint t

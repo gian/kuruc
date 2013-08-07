@@ -38,7 +38,13 @@ struct
    fun freshTy () = "xxx"
 
    (** Deals with patterns. *)
-   fun toPat _ = raise Fail "not implemented"
+   fun toPat (P.IdPat (P.Ident (s, pos), pos')) = 
+         A.IdentifierPattern (
+            S.fromString s pos,
+            freshTy (),
+            pos
+         )
+     | toPat _ = A.LiteralPattern (A.Unit, (0, "fake"))
    
    (** Deals with literals. *)
    and toLit (P.Int (b, s, p)) =
@@ -84,28 +90,48 @@ struct
             pos
          )
       end
+     | toExp (l as (P.Int _)) = A.LiteralExpr (toLit l, P.getPos l)
+     | toExp (l as (P.Real _)) = A.LiteralExpr (toLit l, P.getPos l)
+     | toExp (l as (P.Char _)) = A.LiteralExpr (toLit l, P.getPos l)
+     | toExp (l as (P.String _)) = A.LiteralExpr (toLit l, P.getPos l)
+     | toExp (P.Var (P.Ident (symbol, pos), pos')) =
+         A.IdentifierExpr (
+            S.fromString symbol pos,
+            freshTy (),
+            pos'
+         )
      | toExp _ = A.LiteralExpr (A.Unit, (0, "fake"))
 
-   and toBind (P.ValBind (pat, exp, pos)) =
-         ((A.LiteralPattern (A.Unit, pos), toExp exp), pos)
-     | toBind _ = 
+   and toClause (P.ValBind (pat, exp, pos)) =
+         ((toPat pat, toExp exp), pos)
+     | toClause _ = 
          Error.bug("ParseTreeAstConverter", "Not implemented", (0, "fake"))
 
    (** Deals with top-level declarations. *)
    and toDecl [] = []
      | toDecl ((P.ValDec ([binding], pos))::t) =
-         A.ValDec (toBind binding) ::
+         A.ValDec (toClause binding) ::
             toDecl t
      | toDecl ((P.ValDec (bindings, pos))::t) =
          A.MutualDec (
-            map 
-               (fn x =>  A.ValDec ((A.UnitPattern pos, A.LiteralExpr (A.Unit, pos)), pos)) bindings,
+            map (fn c => A.ValDec (toClause c)) bindings,
             pos
          ) :: toDecl t
-     | toDecl ((P.FunDec (binding, pos))::t) = 
+     | toDecl ((P.FunDec ([binding], pos))::t) = 
          A.FunDec 
             (S.fromString "foo" pos, 
             [(A.UnitPattern pos, A.LiteralExpr (A.Unit, pos))], 
+            pos
+         ) :: toDecl t
+     | toDecl ((P.FunDec (bindings, pos))::t) = 
+         A.MutualDec (
+            map (fn f => 
+               A.FunDec (
+                  S.fromString "foo" pos, 
+                  [(A.UnitPattern pos, A.LiteralExpr (A.Unit, pos))], 
+                  pos
+               )
+            ) bindings,
             pos
          ) :: toDecl t
      | toDecl ((P.TypeDec (binding, pos))::t) = 
