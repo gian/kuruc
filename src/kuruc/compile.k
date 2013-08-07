@@ -153,7 +153,10 @@ struct
             (map (fn l => String.concatWith "\n" (map ParseTree.prettyPrint l)) fl'') ^ "\n")
          val _ = Debug.endStage "ParseTreeTransform"
 
-         (* Stage 3 - Type inference/checking *)
+         (* Stage 3 - Transform to TypedAST *)
+         val typedAst = ParseTreeAstConverter.convert fl''
+
+         val _ = Debug.print Debug.debug (TypedAst.prettyPrint typedAst)
       in
          ()
       end

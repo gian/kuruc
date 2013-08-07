@@ -31,19 +31,24 @@
 
 structure Symbol :> SYMBOL =
 struct
+   type pos = Position.t
+
+   val symbolId = ref 0
+   fun nextSymbolId () = (symbolId := !symbolId + 1; !symbolId)
+
    datatype identifier =
-      Short of string
-    | Long of string list
+      Short of string * int * pos
+    | Long of string list * int * pos
 
    type t = identifier
 
-   fun toString (Short s) = s
-     | toString (Long l) = String.concatWith "." l
+   fun toString (Short (s,_,_)) = s
+     | toString (Long (l,_,_)) = String.concatWith "." l
 
-   fun fromString s =
+   fun fromString s pos =
       case String.fields (fn #"." => true | _ => false) s of
-         [t] => Short t
-       | l => Long l
+         [t] => Short (t, nextSymbolId (), pos)
+       | l => Long (l, nextSymbolId(), pos)
 
 end
 

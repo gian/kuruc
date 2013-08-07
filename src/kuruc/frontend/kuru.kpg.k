@@ -1089,6 +1089,11 @@ and parse_keyword (input,pos) : res_keyword =
       if notNone opt1 then opt1 else
       (pos := prestate;    let
       val prestate = !pos
+      val opt1 = literal(input,pos,"eqtype")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
       val opt1 = literal(input,pos,"type")
    in
       if notNone opt1 then opt1 else
@@ -1198,6 +1203,8 @@ and parse_keyword (input,pos) : res_keyword =
    in
       if notNone opt1 then opt1 else
       (pos := prestate; literal(input,pos,"to"))
+   end
+)
    end
 )
    end
@@ -4531,6 +4538,35 @@ and parse_sdec (input,pos) : res_sdec =
    in
       if notNone s1' then    let
       val prestate = !pos
+      val s1' = literal(input,pos,"eqtype")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val v = parse_typedesc(input,pos)
+   in
+      if notNone v then (SOME ((P.TypeDesc($v,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
       val s1' = literal(input,pos,"type")
    in
       if notNone s1' then    let
@@ -4669,6 +4705,8 @@ and parse_sdec (input,pos) : res_sdec =
    else (pos := prestate; NONE)
    end
    else (pos := prestate; NONE)
+   end
+)
    end
 )
    end

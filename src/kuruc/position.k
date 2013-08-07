@@ -26,15 +26,12 @@
 * POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************
 *  This file:
-*    Symbol library for identifiers and operations on them.
+*    File positions for error reporting.
 ******************************************************************************)
 
-signature SYMBOL =
-sig
-   eqtype t
-
-   val toString : t -> string
-   val fromString : string -> Position.t -> t
-
+structure Position =
+struct
+   (** Has the format: (offset, filename). **)
+   type t = int * string
 end
 

@@ -2,6 +2,7 @@ $(SML_LIB)/basis/basis.mlb
 debug.sml
 version.sml
 config.sml
+position.sml
 frontend/error.sml
 frontend/parsetree.sml
 frontend/kuru.kpg.sml
@@ -15,5 +16,6 @@ frontend/parsetree_transformer.sml
 ast/symbol.sig
 ast/symbol.sml
 ast/typed_ast.sml
+ast/parsetree_ast_converter.sml
 compile.sml
 main.sml

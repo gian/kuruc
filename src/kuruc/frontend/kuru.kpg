@@ -160,7 +160,7 @@ nonid          <- "(" / ")" / "[" / "]" / "." / ";" / "," / "|" /
                   "~" / "#" / ":" / "=>" / "=". 
 
 keyword        <- "val" / "let" / "if" / "then" / "else" / "datatype" / "withtype"
-                / "type" / "fn" / "fun" / "and" / "end" / "in" /
+                / "eqtype" / "type" / "fn" / "fun" / "and" / "end" / "in" /
                   "structure" / "struct" / "of" / "case" /
                   "handle" / "raise" / "infixr" / "infix" /
                   "signature" / "sig" / "exception" / "open" / "local" /
@@ -319,6 +319,7 @@ dec            <- _ "val" _ v: valbind -> (P.ValDec($v,(!pos,!kuruFile)))
                 .
 
 sdec           <- _"val" _ v: valdesc -> (P.ValDesc($v,(!pos,!kuruFile)))
+                / _ "eqtype" _ v: typedesc -> (P.TypeDesc($v,(!pos,!kuruFile)))
                 / _ "type" _ v: typedesc -> (P.TypeDesc($v,(!pos,!kuruFile)))
                 / _ "datatype" _ i: id _"="_ "datatype"_ l: longid
                   -> (P.DatatypeAssign ($i,$l,(!pos,!kuruFile)))

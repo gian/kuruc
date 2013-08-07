@@ -31,9 +31,10 @@
 
 structure TypedAst =
 struct
-   type symbol = string
+   structure S = Symbol
 
-   type pos = string * int * int
+   type symbol = S.t
+   type pos = Position.t 
 
    type ty = string
 
@@ -88,16 +89,56 @@ struct
     | OpenDec of symbol * pos
     | BindDec of symbol * module * pos
 
+   and definition =
+      ValDef of symbol * ty * pos
+    | TypDef of ty * ty * pos
+
    and module =
-      StructureMod of symbol * module option * declaration list * pos
-    | SignatureMod of symbol * declaration list * pos
+      StructureMod of symbol * module option * module * pos
+    | SignatureMod of symbol * module * pos
+    | StructMod of declaration list * pos
+    | SigMod of definition list * pos
     | RefMod of symbol * pos
-    | AssignMod of symbol * module * module * pos
-    | AscriptionMod of module * ascription * pos
     | FunctorMod of symbol * functor_clause list * module * pos
+    | DeclMod of declaration
 
    withtype clause = pattern * expression
         and functor_clause = module * module
 
    type program = module list
+
+   fun indent 0 = ""
+     | indent n = "   " ^ indent (n - 1)
+
+   fun ppdec ind _ = indent ind ^ "(* declaration *)"
+   
+   fun ppdef ind _ = indent ind ^ "(* definition *)"
+
+   fun ppmod ind (StructureMod (symbol, NONE, str, _)) =
+         indent ind ^ "structure " ^ S.toString symbol ^ " =\n" ^
+            ppmod ind str
+     | ppmod ind (StructureMod (symbol, SOME sg, str, _)) =
+         indent ind ^ "structure " ^ S.toString symbol ^ " :\n" ^
+         ppmod (ind + 1) sg ^ 
+         " =\n" ^
+         ppmod (ind + 1) str
+     | ppmod ind (SignatureMod (symbol, sg, _)) =
+         indent ind ^ "signature " ^ S.toString symbol ^ " =\n" ^
+            ppmod ind sg
+     | ppmod ind (StructMod (decls, _)) =
+         indent ind ^ "struct\n" ^
+            String.concatWith "\n" (map (ppdec (ind + 1)) decls) ^ "\n" ^
+         indent ind ^ "end"
+     | ppmod ind (SigMod (decls, _)) =
+         indent ind ^ "sig\n" ^
+            String.concatWith "\n" (map (ppdef (ind + 1)) decls) ^ "\n" ^
+         indent ind ^ "end"
+     | ppmod ind (RefMod (symbol, _)) = indent ind ^ S.toString symbol 
+     | ppmod ind (FunctorMod (symbol, fclause, body, _)) = indent ind ^
+         "functor " ^ S.toString symbol ^ " (...) =\n" ^
+            ppmod ind body
+     | ppmod ind (DeclMod decl) = ppdec ind decl
+
+   fun prettyPrint [] = ""
+     | prettyPrint (h::t) = ppmod 0 h ^ "\n" ^ prettyPrint t
 end
