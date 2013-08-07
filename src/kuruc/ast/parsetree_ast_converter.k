@@ -34,11 +34,67 @@ struct
    structure S = Symbol
    structure A = TypedAst
    structure P = ParseTree
+   
+   fun freshTy () = "xxx"
+
+   (** Deals with patterns. *)
+   fun toPat _ = raise Fail "not implemented"
+   
+   (** Deals with literals. *)
+   and toLit (P.Int (b, s, p)) =
+      let
+         val i = if b then IntInf.fromString ("~" ^ s)
+            else IntInf.fromString (s)
+      in
+         A.Int (valOf i)
+      end
+     | toLit (P.Real (b, s1, s2, _, _)) =
+         A.Real ((if b then "~" else "") ^ s1 ^ "." ^ s2)
+     | toLit (P.Char (i, _)) = A.Char i
+     | toLit (P.String (l, _)) = A.String (Vector.fromList l)
+     | toLit (P.UnitExp _) = A.Unit
+
+   (** Deals with expressions. *)
+   and toExp (P.UnitExp pos) = A.LiteralExpr (A.Unit, pos) 
+     | toExp (P.SeqExp ([e1,e2],pos)) = 
+         A.SeqExpr (toExp e1, toExp e2, freshTy (), pos)
+     | toExp (P.IfExp (e1, e2, e3, pos)) =
+         A.IfExpr (toExp e1, toExp e2, toExp e3, freshTy (), pos)
+     | toExp (P.WhileExp (e1, e2, pos)) =
+         A.WhileExpr (toExp e1, toExp e2, freshTy (), pos)
+     | toExp (P.App (e1, e2, pos)) =
+         A.ApplyExpr (toExp e1, toExp e2, freshTy (), pos)
+     | toExp (P.Ident (symbol, pos)) =
+         A.IdentifierExpr (
+            S.fromString symbol pos,
+            freshTy (),
+            pos
+         )
+     | toExp (lid as (P.LongId (h, t, pos))) =
+      let
+         fun collapse (P.LongId (h, t, p)) =
+               collapse h ^ "." ^ collapse t
+           | collapse (P.Ident (s, pos)) = s
+           | collapse _ = Error.bug ("ParseTreeAstConverter",
+                              "Malformed long identifier", pos)
+      in
+         A.IdentifierExpr (
+            S.fromString (collapse lid) pos,
+            freshTy (),
+            pos
+         )
+      end
+     | toExp _ = A.LiteralExpr (A.Unit, (0, "fake"))
+
+   and toBind (P.ValBind (pat, exp, pos)) =
+         ((A.LiteralPattern (A.Unit, pos), toExp exp), pos)
+     | toBind _ = 
+         Error.bug("ParseTreeAstConverter", "Not implemented", (0, "fake"))
 
    (** Deals with top-level declarations. *)
-   fun toDecl [] = []
+   and toDecl [] = []
      | toDecl ((P.ValDec ([binding], pos))::t) =
-         A.ValDec ((A.UnitPattern pos, A.LiteralExpr (A.Unit, pos)), pos) ::
+         A.ValDec (toBind binding) ::
             toDecl t
      | toDecl ((P.ValDec (bindings, pos))::t) =
          A.MutualDec (

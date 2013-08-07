@@ -63,6 +63,7 @@ struct
     | TuplePattern of pattern list * ty * pos
     | ConstructorPattern of constructor_tag * pattern option * ty * pos
     | IdentifierPattern of symbol * ty * pos
+    | AsPattern of symbol * pattern * ty * pos
     | UnitPattern of pos
 
    datatype expression =
@@ -106,9 +107,17 @@ struct
    fun indent 0 = ""
      | indent n = "   " ^ indent (n - 1)
 
-   fun ppexp ind _ = "(* expr *)"
+   fun pplit (Int i) = IntInf.toString i
+     | pplit (Real s) = s
+     | pplit (Char i) = "#\"" ^ String.str (Char.chr i) ^ "\""
+     | pplit (String s) = "\"" ^ (Vector.map Char.chr s) ^ "\""
+     | pplit Unit = "()"
 
-   fun pppat _ = "(* pat *)"
+   fun ppexp ind (LiteralExpr (l,_)) = pplit l
+     | ppexp ind _ = "(* expr *)"
+
+   fun pppat (LiteralPattern (p, _)) = pplit p
+     | pppat _ = "(* pat *)"
 
    fun ppdef ind _ = indent ind ^ "(* definition *)"
 
