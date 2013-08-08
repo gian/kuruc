@@ -53,6 +53,10 @@ struct
                      "Unhandled type: " ^ P.prettyPrint p,
                      P.getPos p)
 
+   and maybeTv [] t = t
+     | maybeTv [x] t = A.TyApp (t, toType x)
+     | maybeTv l t = A.TyApp (t, A.TySeq (map toType l))
+
    (** Deals with patterns. *)
    and toPat (P.IdPat (P.Ident (s, pos), pos')) = 
          A.IdentifierPattern (
@@ -334,7 +338,21 @@ struct
             [], 
             pos
          ) :: toDecl t
-     | toDecl (p::t) = toDecl t
+     | toDecl ((P.TypeDec ([binding], pos))::t) =
+         A.TypeDec (
+            (fn (P.TypeBind (tvars, ty1, ty2, pos')) => 
+               (maybeTv tvars (toType ty1), toType ty2, pos)
+              | _ => Error.bug ("ParseTreeAstConverter", 
+                        "Invalid type binding", pos)) binding
+         ) :: toDecl t
+     | toDecl ((P.TypeDec (bindings, pos))::t) =
+         A.MutualDec (
+            map (fn (P.TypeBind (tvars, ty1, ty2, pos')) => 
+                        A.TypeDec (maybeTv tvars (toType ty1), toType ty2, pos)
+                  | _ => Error.bug ("ParseTreeAstConverter", 
+                        "Invalid type binding", pos)) bindings,
+            pos
+         ) :: toDecl t
      | toDecl (p::_) = 
          Error.bug ("ParseTreeAstConverter", P.prettyPrint p, P.getPos p)
 

@@ -43,6 +43,7 @@ struct
     | TyTuple of ty list
     | TyArrow of ty * ty
     | TyMeta of int
+    | TySeq of ty list
 
    fun ppty (TySimple s) = S.toString s
      | ppty (TyApp (t1, t2)) = ppty t2 ^ " " ^ ppty t1
@@ -50,6 +51,8 @@ struct
      | ppty (TyTuple l) = String.concatWith " * " (map ppty l)
      | ppty (TyArrow (t1, t2)) = ppty t1 ^ " -> " ^ ppty t2
      | ppty (TyVar s) = "'" ^ S.toString s
+     | ppty (TySeq [x]) = ppty x
+     | ppty (TySeq l) = "(" ^ String.concatWith "," (map ppty l) ^ ")"
 
    type constructor_tag = int
 
@@ -104,8 +107,9 @@ struct
     | MutualDec of declaration list * pos
     | OpenDec of symbol * pos
     | BindDec of symbol * declaration * pos
+    | TypeDec of ty * ty * pos
     | ValDef of symbol * ty * pos
-    | TypDef of ty * ty * pos
+    | TypeDef of ty * pos
     | StructureMod of symbol * declaration option * declaration * pos
     | SignatureMod of symbol * declaration * pos
     | StructureAssignMod of symbol * symbol * pos
