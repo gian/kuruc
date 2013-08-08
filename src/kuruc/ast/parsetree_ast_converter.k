@@ -34,10 +34,24 @@ struct
    structure S = Symbol
    structure A = TypedAst
    structure P = ParseTree
-   
-   fun freshTy () = "?Xn"
+  
+   val nextTyIndex = ref 0
+   fun freshTy () =
+         A.TyMeta (nextTyIndex := 1 + !nextTyIndex; !nextTyIndex)
 
-   fun toType _ = "?Xm"
+   fun toType (P.TyName (ident, pos)) = 
+         A.TySimple (S.fromString (idToSymbol ident) pos)
+     | toType (P.TyArrow (t1, t2, pos)) =
+         A.TyArrow (toType t1, toType t2)
+     | toType (P.TyPair (types, pos)) =
+         A.TyTuple (map toType types)
+     | toType (P.TyCon (t1, t2, pos)) =
+         A.TyApp (toType t2, toType t1)
+     | toType (P.Var (P.Ident (s, p), pos)) =
+         A.TyVar (S.fromString s pos)
+     | toType p = Error.bug ("ParseTreeAstConverter", 
+                     "Unhandled type: " ^ P.prettyPrint p,
+                     P.getPos p)
 
    (** Deals with patterns. *)
    and toPat (P.IdPat (P.Ident (s, pos), pos')) = 
@@ -320,12 +334,7 @@ struct
             [], 
             pos
          ) :: toDecl t
-     | toDecl ((P.OpenDec _)::t) = toDecl t
-     | toDecl ((P.DatatypeDec _)::t) = toDecl t
-     | toDecl ((P.InfixDec _)::t) = toDecl t
-     | toDecl ((P.InfixrDec _)::t) = toDecl t
-     | toDecl ((P.ExnDec _)::t) = toDecl t
-     | toDecl ((P.Import _)::t) = toDecl t
+     | toDecl (p::t) = toDecl t
      | toDecl (p::_) = 
          Error.bug ("ParseTreeAstConverter", P.prettyPrint p, P.getPos p)
 

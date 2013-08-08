@@ -36,9 +36,20 @@ struct
    type symbol = S.t
    type pos = Position.t 
 
-   type ty = string
+   datatype ty =
+      TySimple of symbol
+    | TyApp of ty * ty (* Follows application order, i.e. int list is ("list","int") *)
+    | TyVar of symbol
+    | TyTuple of ty list
+    | TyArrow of ty * ty
+    | TyMeta of int
 
-   fun ppty x = x
+   fun ppty (TySimple s) = S.toString s
+     | ppty (TyApp (t1, t2)) = ppty t2 ^ " " ^ ppty t1
+     | ppty (TyMeta i) = "?x" ^ Int.toString i
+     | ppty (TyTuple l) = String.concatWith " * " (map ppty l)
+     | ppty (TyArrow (t1, t2)) = ppty t1 ^ " -> " ^ ppty t2
+     | ppty (TyVar s) = "'" ^ S.toString s
 
    type constructor_tag = int
 
@@ -149,7 +160,14 @@ struct
          "(" ^ String.concatWith "; " (map (ppexp ind) exprs) ^ ")"
      | ppexp ind (HandleExpr (e, (p,b)::clauses, _, _)) =
          ppexp ind e ^ " handle " ^ pppat p ^ " => " ^ ppexp ind b
-     | ppexp _ _ = "(* expr *)"
+     | ppexp ind (ConstructorExpr (symbol, NONE, _, _)) = S.toString symbol
+     | ppexp ind (ConstructorExpr (symbol, SOME args, _, _)) = 
+         "(" ^ S.toString symbol ^ " " ^ ppexp ind args ^ ")"
+     | ppexp ind (AnnotationExpr (exp, ty, _)) =
+         ppexp ind exp ^ " : " ^ ppty ty
+     | ppexp ind (RaiseExpr (exp, _)) = "raise " ^ ppexp ind exp
+     | ppexp ind p = 
+         Error.bug ("TypedAst.ppexp", "Unknown or invalid AST", (0,""))
 
    and pppat (LiteralPattern (p, _)) = pplit p
      | pppat (IdentifierPattern (symbol, ty, pos)) = S.toString symbol
