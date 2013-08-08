@@ -44,6 +44,8 @@ struct
     | TyArrow of ty * ty
     | TyMeta of int
     | TySeq of ty list
+    | TyUnion of ty * constructor list
+   withtype constructor = symbol * ty option
 
    fun ppty (TySimple s) = S.toString s
      | ppty (TyApp (t1, t2)) = ppty t2 ^ " " ^ ppty t1
@@ -53,6 +55,9 @@ struct
      | ppty (TyVar s) = "'" ^ S.toString s
      | ppty (TySeq [x]) = ppty x
      | ppty (TySeq l) = "(" ^ String.concatWith "," (map ppty l) ^ ")"
+     | ppty (TyUnion (t, c)) = String.concatWith " | "
+         (map (fn (s, NONE) => S.toString s
+               | (s, SOME a) => S.toString s ^ " of " ^ ppty a) c)
 
    type constructor_tag = int
 
@@ -228,11 +233,12 @@ struct
      | ppdec ind (FunDec (symbol, (pat, expr)::t, pos)) =
          indent ind ^ "fun " ^ S.toString symbol ^ " " ^ pppat pat ^ " = " ^ 
             ppexp ind expr ^ ppclauses ind symbol t
+     | ppdec ind (TypeDec (ty1, ty2, pos)) =
+         indent ind ^ "type " ^ ppty ty1 ^ " = " ^ ppty ty2
      | ppdec ind (MutualDec (decls, pos)) = 
-         indent ind ^ 
-            String.concatWith 
-               ("\n" ^ indent (ind) ^ "and ") 
-                  (map (ppdec ind) decls)
+          String.concatWith 
+             ("\n" ^ indent (ind) ^ "and ") 
+                (map (ppdec ind) decls)
 
    fun prettyPrint [] = ""
      | prettyPrint (h::t) = ppdec 0 h ^ "\n\n" ^ prettyPrint t

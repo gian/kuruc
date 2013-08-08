@@ -41,6 +41,8 @@ struct
 
    fun toType (P.TyName (ident, pos)) = 
          A.TySimple (S.fromString (idToSymbol ident) pos)
+     | toType (P.Ident (ident, pos)) =
+         A.TySimple (S.fromString ident pos)
      | toType (P.TyArrow (t1, t2, pos)) =
          A.TyArrow (toType t1, toType t2)
      | toType (P.TyPair (types, pos)) =
@@ -56,6 +58,14 @@ struct
    and maybeTv [] t = t
      | maybeTv [x] t = A.TyApp (t, toType x)
      | maybeTv l t = A.TyApp (t, A.TySeq (map toType l))
+
+   and constructorsToType ty l =
+      A.TyUnion (ty,
+         map (fn (P.ConBind (P.Ident (i, p), NONE, _)) =>
+                  (S.fromString i p, NONE)
+               | (P.ConBind (P.Ident (i, p), SOME args, _)) =>
+                  (S.fromString i p, SOME (toType args))
+               | p => Error.fail ("Invalid clause in datatype", P.getPos p)) l)
 
    (** Deals with patterns. *)
    and toPat (P.IdPat (P.Ident (s, pos), pos')) = 
@@ -304,9 +314,6 @@ struct
             ) bindings,
             pos
          ) :: toDecl t
-     | toDecl ((P.TypeDec (binding, pos))::t) = 
-         A.ValDec ((A.UnitPattern pos, A.LiteralExpr (A.Unit, pos)), pos) ::
-            toDecl t
      | toDecl ((P.StructDec (l, pos))::t) =
          toDecl l @ toDecl t
      | toDecl ((P.SigDec (l, pos))::t) =
@@ -353,6 +360,25 @@ struct
                         "Invalid type binding", pos)) bindings,
             pos
          ) :: toDecl t
+     | toDecl ((P.DatatypeDec ([P.DataBind (tvars, ty1, clauses, pos)], pos'))::t) =
+         A.TypeDec (
+            maybeTv tvars (toType ty1),
+            constructorsToType (maybeTv tvars (toType ty1)) clauses,
+            pos
+         ) :: toDecl t
+     | toDecl ((P.DatatypeDec (bindings, pos))::t) =
+         A.MutualDec (
+            map (fn (P.DataBind (tvars, ty1, clauses, pos)) =>
+                     A.TypeDec (
+                        maybeTv tvars (toType ty1),
+                        constructorsToType (maybeTv tvars (toType ty1)) clauses,
+                        pos
+                     )
+                  | p => Error.fail 
+                     ("Invalid datatype binding", P.getPos p)) bindings,
+            pos
+         ) :: toDecl t
+     | toDecl (p::t) = toDecl t
      | toDecl (p::_) = 
          Error.bug ("ParseTreeAstConverter", P.prettyPrint p, P.getPos p)
 
