@@ -35,10 +35,12 @@ struct
    structure A = TypedAst
    structure P = ParseTree
    
-   fun freshTy () = "xxx"
+   fun freshTy () = "?Xn"
+
+   fun toType _ = "?Xm"
 
    (** Deals with patterns. *)
-   fun toPat (P.IdPat (P.Ident (s, pos), pos')) = 
+   and toPat (P.IdPat (P.Ident (s, pos), pos')) = 
          A.IdentifierPattern (
             S.fromString s pos,
             freshTy (),
@@ -50,8 +52,67 @@ struct
             freshTy (),
             pos
          )
-     | toPat _ = A.LiteralPattern (A.Unit, (0, "fake"))
-   
+     | toPat (P.ConstrPat (identifier, NONE, pos)) =
+         A.ConstructorPattern (
+            S.fromString (idToSymbol identifier) pos,
+            NONE,
+            freshTy (),
+            pos
+         )
+     | toPat (P.ConstrPat (identifier, SOME pat, pos)) =
+         A.ConstructorPattern (
+            S.fromString (idToSymbol identifier) pos,
+            SOME (toPat pat),
+            freshTy (),
+            pos
+         )
+     | toPat (P.NilPat pos) =
+         A.ConstructorPattern (
+            S.fromString "nil" pos,
+            NONE,
+            freshTy (),
+            pos
+         )
+     | toPat (P.InfixPat (lhs, P.Ident ("::", pos), rhs, pos')) =
+         A.ConstructorPattern (
+            S.fromString "::" pos,
+            SOME (A.TuplePattern ([toPat lhs, toPat rhs], freshTy (), pos)),
+            freshTy (),
+            pos'
+         )
+     | toPat (P.UnitPat pos) = A.LiteralPattern (A.Unit, pos)
+     | toPat (P.ConPat (literal, pos)) = 
+         A.LiteralPattern (toLit literal, pos)
+     | toPat (P.WildcardPat pos) =
+         A.IdentifierPattern (
+            S.fromString "FRESH_ID" pos,
+            freshTy (),
+            pos
+         )
+     | toPat (P.TyAnnPat (pat, ty, pos)) =
+         A.AnnotationPattern (
+            toPat pat,
+            toType ty,
+            pos
+         )
+     | toPat (P.AsPat (pat1, pat2, pos)) =
+         A.AsPattern (
+            toPat pat1,
+            toPat pat2,
+            freshTy (),
+            pos
+         )
+     | toPat p = 
+      Error.bug ("ParseTreeAstConverter", 
+         "Invalid pattern: " ^ P.prettyPrint p,
+         P.getPos p)
+ 
+   and idToSymbol (P.LongId (h, t, p)) =
+         idToSymbol h ^ "." ^ idToSymbol t
+     | idToSymbol (P.Ident (s, pos)) = s
+     | idToSymbol p = Error.bug ("ParseTreeAstConverter",
+                              "Malformed long identifier", P.getPos p)
+
    (** Deals with literals. *)
    and toLit (P.Int (b, s, p)) =
       let
@@ -65,11 +126,14 @@ struct
      | toLit (P.Char (i, _)) = A.Char i
      | toLit (P.String (l, _)) = A.String (Vector.fromList l)
      | toLit (P.UnitExp _) = A.Unit
+     | toLit p = Error.bug ("ParseTreeAstConverter",
+                              "Malformed literal expression", P.getPos p)
+
 
    (** Deals with expressions. *)
    and toExp (P.UnitExp pos) = A.LiteralExpr (A.Unit, pos) 
-     | toExp (P.SeqExp ([e1,e2],pos)) = 
-         A.SeqExpr (toExp e1, toExp e2, freshTy (), pos)
+     | toExp (P.SeqExp (exps, pos)) = 
+         A.SeqExpr (map toExp exps, freshTy (), pos)
      | toExp (P.IfExp (e1, e2, e3, pos)) =
          A.IfExpr (toExp e1, toExp e2, toExp e3, freshTy (), pos)
      | toExp (P.WhileExp (e1, e2, pos)) =
@@ -84,14 +148,9 @@ struct
          )
      | toExp (lid as (P.LongId (h, t, pos))) =
       let
-         fun collapse (P.LongId (h, t, p)) =
-               collapse h ^ "." ^ collapse t
-           | collapse (P.Ident (s, pos)) = s
-           | collapse _ = Error.bug ("ParseTreeAstConverter",
-                              "Malformed long identifier", pos)
       in
          A.IdentifierExpr (
-            S.fromString (collapse lid) pos,
+            S.fromString (idToSymbol lid) pos,
             freshTy (),
             pos
          )
@@ -106,7 +165,68 @@ struct
             freshTy (),
             pos'
          )
-     | toExp _ = A.LiteralExpr (A.Unit, (0, "fake"))
+     | toExp (P.TupleExp ([e], pos)) =
+         toExp e
+     | toExp (P.TupleExp (l, pos)) =
+         A.TupleExpr (
+            map toExp l,
+            freshTy (),
+            pos
+         )
+     | toExp (P.LetExp (decls, exp, pos)) =
+         A.LetExpr (
+            toDecl decls,
+            toExp exp,
+            freshTy (),
+            pos
+         )
+     | toExp (P.Raise (exp, pos)) =
+         A.RaiseExpr (toExp exp, pos)
+     | toExp (P.NilExp pos) = 
+         A.ConstructorExpr (
+            S.fromString "nil" pos,
+            NONE,
+            freshTy (),
+            pos
+         )
+     | toExp (P.TyAnn (exp, ty, pos)) =
+         A.AnnotationExpr (
+            toExp exp,
+            toType ty,
+            pos
+         )
+     | toExp (P.CaseExp (exp, clauses, pos)) =
+         A.CaseExpr (
+            toExp exp,
+            map (fn (P.Match (pat, body, _)) =>
+                     (toPat pat, toExp body)
+                  | _ => Error.bug ("ParseTreeAstConverter",
+                           "Invalid case clause", pos)) clauses,
+            freshTy (),
+            pos
+         )
+     | toExp (P.FnExp (clauses, pos)) =
+         A.FnExpr (
+            map (fn (P.Match (pat, body, _)) =>
+                     (toPat pat, toExp body)
+                  | _ => Error.bug ("ParseTreeAstConverter",
+                           "Invalid case clause", pos)) clauses,  
+            freshTy (),
+            pos
+         )
+     | toExp (P.HandleExp (exp, clauses, pos)) =
+         A.HandleExpr (
+            toExp exp,
+            map (fn (P.Match (p,b,_)) => (toPat p, toExp b)
+                  | _ => Error.bug ("ParseTreeAstConverter",
+                           "Invalid handle clause", pos)) clauses,
+            freshTy (),
+            pos
+         )
+     | toExp p = Error.bug ("ParseTreeAstConverter",
+                            "Malformed expression: " ^
+                            P.prettyPrint p,
+                            P.getPos p)
 
    and toClause (P.ValBind (pat, exp, pos)) =
          ((toPat pat, toExp exp), pos)

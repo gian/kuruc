@@ -164,7 +164,7 @@ keyword        <- "val" / "let" / "if" / "then" / "else" / "datatype" / "withtyp
                   "structure" / "struct" / "of" / "case" /
                   "handle" / "raise" / "infixr" / "infix" /
                   "signature" / "sig" / "exception" / "open" / "local" /
-                  "_import" / "as" / "bind" / "to".
+                  "_import" / "as" / "bind" / "to" / "op".
 
 id             <-  r1: reserved r2: (reserved*) -> 
                   (P.Ident(String.concat($r1 :: $r2),(!pos,!kuruFile)))
@@ -197,7 +197,7 @@ exp            <- _ "raise" _ e: exp -> (P.Raise ($e,(!pos,!kuruFile)))
                   (P.Infix (P.AppList ($e1,(!pos,!kuruFile)),P.Ident ("=",(!pos,!kuruFile)),$e2,(!pos,!kuruFile)))
                 / _ e1: expapp -> (P.AppList ($e1,(!pos,!kuruFile))).
                 
-expel          <- "op" _ l: longid -> (P.OpExp ($l,(!pos,!kuruFile)))
+expel          <- "op" sp _ l: longid -> (P.OpExp ($l,(!pos,!kuruFile)))
                 / "let"_ d: declist _"in"_ 
                      e1: exp _ ";"_ e2: expseq _ "end" ->
                         (P.LetExp($d,P.SeqExp($e1 :: $e2,(!pos,!kuruFile)),(!pos,!kuruFile)))

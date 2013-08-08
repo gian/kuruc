@@ -1202,7 +1202,14 @@ and parse_keyword (input,pos) : res_keyword =
       val opt1 = literal(input,pos,"bind")
    in
       if notNone opt1 then opt1 else
-      (pos := prestate; literal(input,pos,"to"))
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"to")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; literal(input,pos,"op"))
+   end
+)
    end
 )
    end
@@ -1874,6 +1881,10 @@ and parse_expel (input,pos) : res_expel =
    in
       if notNone s1' then    let
       val prestate = !pos
+      val s1' = parse_sp(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
       val s1' = parse__(input,pos)
    in
       if notNone s1' then    let
@@ -1881,6 +1892,8 @@ and parse_expel (input,pos) : res_expel =
       val l = parse_longid(input,pos)
    in
       if notNone l then (SOME ((P.OpExp ($l,(!pos,!kuruFile))))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
    end
    else (pos := prestate; NONE)
    end

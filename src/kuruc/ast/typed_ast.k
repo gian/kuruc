@@ -38,6 +38,8 @@ struct
 
    type ty = string
 
+   fun ppty x = x
+
    type constructor_tag = int
 
    datatype ascription =
@@ -61,10 +63,11 @@ struct
    datatype pattern =
       LiteralPattern of literal * pos
     | TuplePattern of pattern list * ty * pos
-    | ConstructorPattern of constructor_tag * pattern option * ty * pos
+    | ConstructorPattern of symbol * pattern option * ty * pos
     | IdentifierPattern of symbol * ty * pos
-    | AsPattern of symbol * pattern * ty * pos
+    | AsPattern of pattern * pattern * ty * pos
     | CurriedPattern of pattern list * ty * pos
+    | AnnotationPattern of pattern * ty * pos
     | UnitPattern of pos
 
    datatype expression =
@@ -78,10 +81,10 @@ struct
     | ApplyExpr of expression * expression * ty * pos
     | RaiseExpr of expression * pos
     | HandleExpr of expression * clause list * ty * pos
-    | SeqExpr of expression * expression * ty * pos
+    | SeqExpr of expression list * ty * pos
     | LetExpr of declaration list * expression * ty * pos
     | AnnotationExpr of expression * ty * pos
-    | ConstructorExpr of constructor_tag * expression option * ty * pos
+    | ConstructorExpr of symbol * expression option * ty * pos
 
    and declaration =
       ValDec of clause * pos
@@ -115,25 +118,63 @@ struct
      | pplit Unit = "()"
 
    fun ppexp ind (LiteralExpr (l,_)) = pplit l
-     | ppexp ind _ = "(* expr *)"
+     | ppexp ind (IdentifierExpr (symbol, _, _)) = S.toString symbol
+     | ppexp ind (TupleExpr (exprs, _, _)) = 
+         "(" ^ String.concatWith ", " (map (ppexp ind) exprs) ^ ")"
+     | ppexp ind (IfExpr (e1, e2, e3, _, _)) =
+         "if " ^ ppexp ind e1 ^ " then " ^
+            ppexp ind e2 ^ " else " ^
+            ppexp ind e3
+     | ppexp ind (WhileExpr (e1, e2, _, _)) =
+         "while " ^ ppexp ind e1 ^ " do " ^
+            ppexp ind e2
+     | ppexp ind (ApplyExpr (e1, e2, _, _)) =
+         ppexp ind e1 ^ " " ^ ppexp ind e2
+     | ppexp ind (LetExpr (decls, exp, _, _)) =
+         "\n" ^ indent ind ^ "let\n" ^
+            String.concatWith "\n" (map (ppdec (ind + 1)) decls) ^ "\n" ^
+         indent ind ^ "in\n" ^
+         indent (ind + 1) ^ ppexp (ind + 1) exp ^ "\n" ^
+         indent ind ^ "end"
+     | ppexp ind (CaseExpr (exp, ((p,b)::clauses), _, _)) =
+         "case " ^ ppexp ind exp ^ " of\n" ^
+            indent (ind + 1) ^ "   " ^ pppat p ^ " => " ^
+               ppexp (ind + 1) b ^ String.concat
+                   (map (fn (p,b) => 
+                     "\n" ^ indent (ind + 1) ^ "  | " ^
+                        pppat p ^ " => " ^ ppexp (ind + 1) b) clauses)
+     | ppexp ind (FnExpr (((p,b)::clauses), _, _)) =
+         "fn " ^ pppat p ^ " => " ^ ppexp ind b
+     | ppexp ind (SeqExpr (exprs, _, _)) = 
+         "(" ^ String.concatWith "; " (map (ppexp ind) exprs) ^ ")"
+     | ppexp ind (HandleExpr (e, (p,b)::clauses, _, _)) =
+         ppexp ind e ^ " handle " ^ pppat p ^ " => " ^ ppexp ind b
+     | ppexp _ _ = "(* expr *)"
 
-   fun pppat (LiteralPattern (p, _)) = pplit p
+   and pppat (LiteralPattern (p, _)) = pplit p
      | pppat (IdentifierPattern (symbol, ty, pos)) = S.toString symbol
      | pppat (TuplePattern (pats, _, _)) = 
          "(" ^ String.concatWith "," (map pppat pats) ^ ")"
      | pppat (CurriedPattern (pats, _, _)) =
          String.concatWith " " (map pppat pats)
+     | pppat (AnnotationPattern (pat, ty, pos)) =
+         "(" ^ pppat pat ^ " : " ^ ppty ty ^ ")"
+     | pppat (ConstructorPattern (symbol, NONE, _, _)) = S.toString symbol
+     | pppat (ConstructorPattern (symbol, SOME pat, _, _)) = 
+         "(" ^ S.toString symbol ^ " " ^ pppat pat ^ ")"
+     | pppat (AsPattern (pat1, pat2, _, _)) = 
+         pppat pat1 ^ " as " ^ pppat pat2
      | pppat _ = "(* pat *)"
 
-   fun ppdef ind _ = indent ind ^ "(* definition *)"
+   and ppdef ind _ = indent ind ^ "(* definition *)"
 
-   fun ppclauses ind symb ((pat, exp)::t) =
+   and ppclauses ind symb ((pat, exp)::t) =
       "\n" ^ indent ind ^ "  | " ^
-         S.toString symb ^ pppat pat ^ " = " ^ ppexp ind exp ^
+         S.toString symb ^ " " ^ pppat pat ^ " = " ^ ppexp ind exp ^
          ppclauses ind symb t
      | ppclauses ind symb [] = ""
 
-   fun ppdec ind (StructureMod (symbol, NONE, str, _)) =
+   and ppdec ind (StructureMod (symbol, NONE, str, _)) =
          indent ind ^ "structure " ^ S.toString symbol ^ " =\n" ^
             ppdec ind str
      | ppdec ind (StructureMod (symbol, SOME sg, str, _)) =
