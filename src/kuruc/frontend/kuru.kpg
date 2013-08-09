@@ -68,6 +68,7 @@ structure P = ParseTree
 %nonterm patel of P.pt
 %nonterm patlist of P.pt list
 %nonterm patapp of P.pt list
+%nonterm implicit of (P.pt * P.pt) list
 %nonterm typ of P.pt
 %nonterm typel of P.pt
 %nonterm tyannopt of P.pt option
@@ -157,7 +158,7 @@ reserved       <- "!" / "%" / "&" / "$" / "+" / "-" /  "/"
                 / "^" / "*".
 
 nonid          <- "(" / ")" / "[" / "]" / "." / ";" / "," / "|" /
-                  "~" / "#" / ":" / "=>" / "=". 
+                  "~" / "#" / ":" / "=>" / "=" / "{" / "}". 
 
 keyword        <- "val" / "let" / "if" / "then" / "else" / "datatype" / "withtype"
                 / "eqtype" / "type" / "fn" / "fun" / "and" / "end" / "in" /
@@ -258,6 +259,8 @@ patel          <- "_" -> (P.WildcardPat ((!pos,!kuruFile)))
                 / "()" -> (P.UnitPat ((!pos,!kuruFile)))
                 / "[" _ p: patlist _ "]" -> (P.ListPat ($p,(!pos,!kuruFile)))
                 / "[" _ "]" -> (P.ListPat ([],(!pos,!kuruFile)))
+                / _ "{"_ i: implicit _ "}" -> 
+                  (P.ImplicitPat ($i,(!pos,!kuruFile)))
                 .
 
 patlist        <- _ p1: pat _ "," _ p2: patlist -> ($p1 :: $p2)
@@ -265,6 +268,11 @@ patlist        <- _ p1: pat _ "," _ p2: patlist -> ($p1 :: $p2)
 
 patapp         <- _ p1: patel _ p2: patapp -> ($p1 :: $p2)
                 / _ p1: patel -> ([$p1]).
+
+implicit       <-  i: longid _":"_ class: typ _","_ r: implicit ->
+                  (($i, $class) :: $r)
+                /  i: longid _":"_ class: typ ->
+                  ([($i, $class)]).
 
 % Types
 

@@ -55,6 +55,7 @@ struct
    fun is_operator (Ident (i,_)) = 
          List.exists (fn (_,Ident (x,_),_) => x = i
                        | _ => false) (!infixes)
+     | is_operator (IdPat (i, _)) = is_operator i
      | is_operator _ = false
 
    fun apply tenv venv pt = 
@@ -152,6 +153,11 @@ struct
         | s i (FunDec (ll,p)) = FunDec (map (fn l => map (s i) l) ll,p)
         | s i (ValBind (a,b,p)) = ValBind (s i a, s i b,p)
         | s i (TypeBind (l,a,b,p)) = TypeBind (map (s i) l, s i a, s i b,p)
+        | s i (FunMatch (a, [IdPat (b,p'), c], t, d, p)) =
+            (* Defs like: fun a + b = ... *)
+            if is_operator b then
+               FunMatch (s i b, [(s i) (TuplePat ([IdPat (a, p), c], p))], t, s i d, p)
+            else FunMatch (s i a, map (s i) [IdPat (b,p'), c], t, s i d, p)
         | s i (FunMatch (a,l,NONE,c,p)) = FunMatch (s i a,map (s i) l, NONE, s i c, p)
         | s i (FunMatch (a,l,SOME b,c,p)) = 
             FunMatch (s i a,map (s i) l,SOME (s i b),s i c, p)

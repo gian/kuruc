@@ -94,6 +94,7 @@ type res_pat = P.pt option
 type res_patel = P.pt option
 type res_patlist = P.pt list option
 type res_patapp = P.pt list option
+type res_implicit = (P.pt * P.pt) list option
 type res_typ = P.pt option
 type res_typel = P.pt option
 type res_tyannopt = P.pt option option
@@ -148,6 +149,7 @@ val cache_tyannopt = ref [] : (int * (int * res_tyannopt)) list ref
 val cache_typapp = ref [] : (int * (int * res_typapp)) list ref
 val cache_typel = ref [] : (int * (int * res_typel)) list ref
 val cache_typ = ref [] : (int * (int * res_typ)) list ref
+val cache_implicit = ref [] : (int * (int * res_implicit)) list ref
 val cache_patapp = ref [] : (int * (int * res_patapp)) list ref
 val cache_patlist = ref [] : (int * (int * res_patlist)) list ref
 val cache_patel = ref [] : (int * (int * res_patel)) list ref
@@ -1009,7 +1011,21 @@ and parse_nonid (input,pos) : res_nonid =
       val opt1 = literal(input,pos,"=>")
    in
       if notNone opt1 then opt1 else
-      (pos := prestate; literal(input,pos,"="))
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"=")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val opt1 = literal(input,pos,"{")
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate; literal(input,pos,"}"))
+   end
+)
+   end
+)
    end
 )
    end
@@ -3235,6 +3251,8 @@ and parse_patel (input,pos) : res_patel =
       if notNone opt1 then opt1 else
       (pos := prestate;    let
       val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
       val s1' = literal(input,pos,"[")
    in
       if notNone s1' then    let
@@ -3250,6 +3268,47 @@ and parse_patel (input,pos) : res_patel =
    else (pos := prestate; NONE)
    end
    else (pos := prestate; NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"{")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val i = parse_implicit(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,"}")
+   in
+      if notNone s1' then SOME ((P.ImplicitPat ($i,(!pos,!kuruFile))))   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+)
    end
 )
    end
@@ -3409,6 +3468,116 @@ and parse_patapp (input,pos) : res_patapp =
    end
 )
             val _ = cacheupd cache_patapp inppos (!pos,cVal)
+              in cVal end
+   in
+      cacheGen
+   end
+
+
+and parse_implicit (input,pos) : res_implicit =
+   let
+      val _ = setErrPos (!pos)
+      val _ = debug_print "parse_implicit\n"
+      val inppos = !pos
+      val cacheLk = cachefind cache_implicit inppos
+      val cacheGen = if notNone cacheLk then
+         let val (cPos,cVal) = valOf cacheLk
+             val _ = pos := cPos
+         in cVal end
+         else let
+            val cVal = (   let
+      val prestate = !pos
+      val opt1 =    let
+      val prestate = !pos
+      val i = parse_longid(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,":")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val class = parse_typ(input,pos)
+   in
+      if notNone class then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,",")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val r = parse_implicit(input,pos)
+   in
+      if notNone r then (SOME ((($i, $class) :: $r))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+
+   in
+      if notNone opt1 then opt1 else
+      (pos := prestate;    let
+      val prestate = !pos
+      val i = parse_longid(input,pos)
+   in
+      if notNone i then (   let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = literal(input,pos,":")
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val s1' = parse__(input,pos)
+   in
+      if notNone s1' then    let
+      val prestate = !pos
+      val class = parse_typ(input,pos)
+   in
+      if notNone class then (SOME (([($i, $class)]))) else (pos := prestate;NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+   else (pos := prestate; NONE)
+   end
+) else (pos := prestate;NONE)
+   end
+)
+   end
+)
+            val _ = cacheupd cache_implicit inppos (!pos,cVal)
               in cVal end
    in
       cacheGen
@@ -6965,6 +7134,7 @@ let
   val _ = cache_typapp := []
   val _ = cache_typel := []
   val _ = cache_typ := []
+  val _ = cache_implicit := []
   val _ = cache_patapp := []
   val _ = cache_patlist := []
   val _ = cache_patel := []
