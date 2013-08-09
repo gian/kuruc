@@ -6041,7 +6041,7 @@ and parse_databind (input,pos) : res_databind =
       val prestate = !pos
       val t = parse_typebind(input,pos)
    in
-      if notNone t then (SOME ((P.DataBind($tv,$i,$c,(!pos,!kuruFile)) :: []))) else (pos := prestate;NONE)
+      if notNone t then (SOME ((P.DataBind($tv,$i,$c,(!pos,!kuruFile)) :: $t))) else (pos := prestate;NONE)
    end
    else (pos := prestate; NONE)
    end

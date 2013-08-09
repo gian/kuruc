@@ -383,7 +383,7 @@ funmatch       <- "op" _ i: id _ l: patapp _ t: tyannopt _"="_
 databind       <- _ tv: tyvars _ i: id _ "=" _ c: conbind _ "and" d: databind
                   -> (P.DataBind($tv,$i,$c,(!pos,!kuruFile)) :: $d)
                 /  _ tv: tyvars _ i: id _ "=" _ c: conbind _ "withtype" t: typebind
-                  -> (P.DataBind($tv,$i,$c,(!pos,!kuruFile)) :: [])
+                  -> (P.DataBind($tv,$i,$c,(!pos,!kuruFile)) :: $t)
                 / _ tv: tyvars _ i: id _ "=" _ c: conbind
                   -> ([P.DataBind($tv,$i,$c,(!pos,!kuruFile))]).
 

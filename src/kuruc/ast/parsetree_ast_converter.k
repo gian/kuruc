@@ -374,6 +374,12 @@ struct
                         constructorsToType (maybeTv tvars (toType ty1)) clauses,
                         pos
                      )
+                  | (P.TypeBind (tvars, ty1, ty2, pos')) => (* Withtype *)
+                     A.TypeDec (
+                        maybeTv tvars (toType ty1), 
+                        toType ty2, 
+                        pos
+                     )
                   | p => Error.fail 
                      ("Invalid datatype binding", P.getPos p)) bindings,
             pos
